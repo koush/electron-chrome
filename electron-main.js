@@ -36,6 +36,8 @@ global.chromeAppDir;
   }
 
   if (manifest.nacl_modules) {
+    // https://developer.chrome.com/extensions/manifest/nacl_modules
+
     // this nmf file needs to exist, and needs to have these entries.
     // normally, it would be cross platform toolchains like clang-newlib, or glibc,
     // but electron does not support nacl or pnacl.
