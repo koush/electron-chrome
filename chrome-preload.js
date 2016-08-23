@@ -2,7 +2,7 @@
   if (navigator.userAgent.indexOf('Electron') == -1)
     return;
 
-  const {remote} = require('electron')
+  const {remote, desktopCapturer} = require('electron')
   const {Menu, MenuItem, BrowserWindow} = remote;
   const {app} = remote;
   const {makeEvent, safeWrapEvent} = require('./chrome-event.js');
@@ -24,7 +24,8 @@
   var selfBrowserWindow = remote.getCurrentWindow();
 
   document.addEventListener('DOMContentLoaded', function () {
-      selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
+    selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
+    selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
   });
 
   var getWindowGlobal = remote.getGlobal('getWindowGlobal');
@@ -46,6 +47,36 @@
   }
 
   chrome = deepCopy(chrome, {});
+
+  chrome.desktopCapture = {
+    chooseDesktopMedia: function(types, cb) {
+      console.log('choosing');
+
+      desktopCapturer.getSources({types: types}, (error, sources) => {
+        if (error) return;
+        for (let i = 0; i < sources.length; ++i) {
+          console.log(sources[i]);
+          // if (sources[i].name === 'Electron') {
+          //   navigator.webkitGetUserMedia({
+          //     audio: false,
+          //     video: {
+          //       mandatory: {
+          //         chromeMediaSource: 'desktop',
+          //         chromeMediaSourceId: sources[i].id,
+          //         minWidth: 1280,
+          //         maxWidth: 1280,
+          //         minHeight: 720,
+          //         maxHeight: 720
+          //       }
+          //     }
+          //   }, handleStream, handleError)
+          //   return
+          // }
+        }
+      })
+
+    }
+  }
 
   chromeStorageLocalGet = chrome.storage.local.get;
   chrome.storage.local.get = function(k, cb) {
@@ -85,6 +116,41 @@
       this.onClosed.invokeListeners();
       delete localWindowCache[this.id];
     }.bind(this), 'close')
+
+    this.innerBounds = {
+      get x() {
+        return w.getContentBounds().x;
+      },
+      set x(x) {
+        var n = w.getContentBounds();
+        n.x = x;
+        w.setContentBounds(n)
+      },
+      get y() {
+        return w.getContentBounds().y;
+      },
+      set y(y) {
+        var n = w.getContentBounds();
+        n.y = y;
+        w.setContentBounds(n)
+      },
+      get width() {
+        return w.getContentBounds().width;
+      },
+      set width(width) {
+        var n = w.getContentBounds();
+        n.width = width;
+        w.setContentBounds(n)
+      },
+      get height() {
+        return w.getContentBounds().height;
+      },
+      set height(h) {
+        var n = w.getContentBounds();
+        n.h = h;
+        w.setContentBounds(n)
+      }
+    }
   }
 
   function passthroughPrototype(n) {
@@ -93,7 +159,7 @@
     }
   }
 
-  var passthroughs = ['setAlwaysOnTop', 'show', 'hide'];
+  var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close'];
   for (var n in passthroughs) {
     (function() {
       var p = passthroughs[n];
@@ -163,13 +229,15 @@
 
   var chromeAppWindowCreate = chrome.app.window.create;
   chrome.app.window.create = function(page, options, cb) {
-    chromeAppWindowCreate(options, function(w) {
+    chromeAppWindowCreate(options, function(w, existed) {
       var cw = new ChromeShimWindow(w);
       if (cb)
         cb(cw);
 
-      w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
-      w.show();
+      if (!existed) {
+        w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
+        w.show();
+      }
       // w.loadURL(`file://${__dirname}/../${page}`)
       // w.webContents.openDevTools({mode: 'detach'})
     });

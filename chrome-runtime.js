@@ -187,16 +187,18 @@ chrome.app.window.create = function(options, cb) {
   var id = options.id;
   var w = windows[id];
   if (w) {
-    cb(w);
+    cb(w, true);
     return;
   }
 
   var windowSettings = loadWindowSettings(id);
   var contentBounds = windowSettings.contentBounds || {};
+  var frameless = options.frame && options.frame.type == 'none';
   var options = options.innerBounds || {};
 
   var opts = {
-    show: false
+    show: false,
+    frame: !frameless,
   };
   var copyProps = ['x', 'y', 'width', 'height', 'minWidth', 'minHeight'];
   for (var i in copyProps) {
@@ -255,7 +257,7 @@ function createBackground() {
     safeRegister(selfWindow, bg.webContents, hideBg, 'devtools-closed');
     // bg.loadURL(`file://${__dirname}/../electron-background.html`)
     bg.loadURL(`chrome-extension://${chrome.runtime.id}/_generated_background_page.html`);
-    // bg.webContents.openDevTools({mode: 'detach'})
+    bg.webContents.openDevTools({mode: 'detach'})
     bg.hide();
   })
 }
