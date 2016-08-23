@@ -43,6 +43,8 @@ global.chromeAppDir;
     // but electron does not support nacl or pnacl.
     // electron only supports host pepper plugins.
     // put in these invalid native host entries that Chrome happily ignores.
+    // darwin, windows, and linux are the names of the host toolchains.
+    // map these to os.platform()
     // {
     //   "files": {},
     //   "program": {
