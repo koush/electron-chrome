@@ -1,0 +1,12 @@
+{
+  "name"    : "Electron Chrome",
+  "version" : "0.1.0",
+  "main"    : "electron-main.js",
+  "description": "Run Chrome apps on Electron",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron-prebuilt": "^1.3.3"
+  }
+}
