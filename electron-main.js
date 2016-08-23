@@ -1,14 +1,14 @@
 const electron = require('electron');
-const {app, protocol} = electron;
-const {BrowserWindow} = electron;
+const {app, protocol, BrowserWindow} = electron;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
 global.chromeManifest = null;
 global.chromeAppDir;
+var manifest
+var appDir;
 (function() {
-  var appDir;
   for (var arg of process.argv) {
     if (arg.startsWith('--app-dir=')) {
       appDir = arg.substring('--app-dir='.length)
@@ -27,7 +27,7 @@ global.chromeAppDir;
 
   var manifestPath = path.join(appDir, 'manifest.json');
   try {
-    var manifest = JSON.parse(fs.readFileSync(manifestPath).toString());
+    manifest = JSON.parse(fs.readFileSync(manifestPath).toString());
     chromeManifest = manifest;
   }
   catch (e) {
@@ -132,13 +132,62 @@ function makeRuntimeWindow() {
   chromeRuntimeWindow.hide();
 }
 
+function registerProtocol() {
+  return new Promise((resolve, reject) => {
+    protocol.unregisterProtocol('chrome-extension', function() {
+      var cache = {};
+      protocol.registerBufferProtocol('chrome-extension', function(request, callback) {
+        if (request.url == `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`) {
+          var scripts = manifest.app.background.scripts;
+          var scriptsString = scripts
+          .map(s => `<script src="${s}" type="text/javascript"></script>`)
+          .join('\n');
+          var html = `<!DOCTYPE html>\n<html>\n<head>\n</head>\n<body>\n${scriptsString}\n</body>\n</html>\n`
+          callback(Buffer.from(html));
+          return;
+        }
+
+        if (cache[request.url]) {
+          callback(cache[request.url]);
+          return;
+        }
+
+        var file = request.url.replace(`chrome-extension://${chrome.runtime.id}/`, '');
+        file = path.join(appDir, file);
+        var query = file.indexOf('?');
+        if (query != -1)
+          file = file.substring(0, query);
+        fs.readFile(file, function(e, d) {
+          var result = cache[request.url] = e || d;
+          callback(result);
+        })
+      }, function(e) {
+        if (e) {
+          reject(e);
+          return;
+        }
+        resolve();
+      })
+    });
+  });
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', function() {
   if (process.argv.indexOf('--silent') != -1)
     wantsActivate = false;
-  makeRuntimeWindow();
+
+  if (false) {
+    makeRuntimeWindow();
+  }
+  else {
+    registerProtocol()
+    .then(function() {
+      makeRuntimeWindow();
+    })
+  }
 })
 
 global.isReloading = false;

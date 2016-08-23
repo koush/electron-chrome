@@ -262,42 +262,6 @@ function createBackground() {
   })
 }
 
-function registerProtocol() {
-  return new Promise((resolve, reject) => {
-    protocol.unregisterProtocol('chrome-extension', function() {
-      protocol.registerBufferProtocol('chrome-extension', function(request, callback) {
-        if (request.url == `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`) {
-          var scripts = manifest.app.background.scripts;
-          var scriptsString = scripts
-          .map(s => `<script src="${s}" type="text/javascript"></script>`)
-          .join('\n');
-
-          var html = `<!DOCTYPE html>\n<html>\n<head>\n</head>\n<body>\n${scriptsString}\n</body>\n</html>\n`
-
-          // var b = require('fs').readFileSync(`${__dirname}/../electron-background.html`);
-          callback(Buffer.from(html));
-          return;
-        }
-
-        var file = request.url.replace(`chrome-extension://${chrome.runtime.id}/`, '');
-        file = path.join(appDir, file);
-        var query = file.indexOf('?');
-        if (query != -1)
-          file = file.substring(0, query);
-        fs.readFile(file, function(e, d) {
-          callback(e || d);
-        })
-      }, function(e) {
-        if (e) {
-          reject(e);
-          return;
-        }
-        resolve();
-      })
-    });
-  });
-}
-
 function calculateId() {
   return new Promise((resolve, reject) => {
     var key = manifest.key;
@@ -332,7 +296,7 @@ function calculateId() {
 
 Promise.all([
   calculateId(),
-  registerProtocol(),
+  // registerProtocol(),
 ])
 .then(function() {
   console.log('initialized');

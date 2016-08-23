@@ -2,10 +2,12 @@
   if (navigator.userAgent.indexOf('Electron') == -1)
     return;
 
-  const {remote, desktopCapturer} = require('electron')
+  const {remote, desktopCapturer, webFrame} = require('electron')
   const {Menu, MenuItem, BrowserWindow} = remote;
   const {app} = remote;
   const {makeEvent, safeWrapEvent} = require('./chrome-event.js');
+
+  webFrame.registerURLSchemeAsSecure('chrome-extension')
 
   function throttleTimeout(token, item, throttle, cb) {
     if (!token)
@@ -23,10 +25,8 @@
 
   var selfBrowserWindow = remote.getCurrentWindow();
 
-  document.addEventListener('DOMContentLoaded', function () {
-    selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
-    selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
-  });
+  selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
+  selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
 
   var getWindowGlobal = remote.getGlobal('getWindowGlobal');
   var setWindowGlobal = remote.getGlobal('setWindowGlobal');
@@ -49,32 +49,36 @@
   chrome = deepCopy(chrome, {});
 
   chrome.desktopCapture = {
+
+
     chooseDesktopMedia: function(types, cb) {
       console.log('choosing');
 
-      desktopCapturer.getSources({types: types}, (error, sources) => {
-        if (error) return;
-        for (let i = 0; i < sources.length; ++i) {
-          console.log(sources[i]);
-          // if (sources[i].name === 'Electron') {
-          //   navigator.webkitGetUserMedia({
-          //     audio: false,
-          //     video: {
-          //       mandatory: {
-          //         chromeMediaSource: 'desktop',
-          //         chromeMediaSourceId: sources[i].id,
-          //         minWidth: 1280,
-          //         maxWidth: 1280,
-          //         minHeight: 720,
-          //         maxHeight: 720
-          //       }
-          //     }
-          //   }, handleStream, handleError)
-          //   return
-          // }
-        }
-      })
+      var chooser = new BrowserWindow({
+        title: 'Share Your Screen',
+        width: 1024,
+        height: 768
+      });
 
+      safeRegister(selfBrowserWindow, chooser, function() {
+        if (cb) {
+          cb();
+          cb = null;
+        }
+      }, 'close');
+      chooser.webContents.once('did-finish-load', function() {
+        console.log('didfinishload')
+        chooser.emit('pickDesktopMedia', types);
+      })
+      chooser.loadURL(`file://${__dirname}/chrome-desktopcapture-picker.html`);
+
+      safeRegister(selfBrowserWindow, chooser, function(id) {
+        console.log('chose', id);
+        if (cb) {
+          cb(id);
+          cb = null;
+        }
+      }, 'choseDesktopMedia')
     }
   }
 
@@ -85,6 +89,20 @@
       if (cb)
         cb(JSON.parse(JSON.stringify(d)))
     })
+  }
+
+  chrome.syncFileSystem = {
+    requestFileSystem: function(cb) {
+      try {
+        chrome.runtime.lastError = new Error('not implemented');
+        if (cb) {
+          cb(null);
+        }
+      }
+      finally {
+        delete chrome.runtime.lastError;
+      }
+    }
   }
 
   var localWindowCache = {};
@@ -159,7 +177,7 @@
     }
   }
 
-  var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close'];
+  var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized'];
   for (var n in passthroughs) {
     (function() {
       var p = passthroughs[n];
@@ -236,7 +254,9 @@
 
       if (!existed) {
         w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
-        w.show();
+        w.once('ready-to-show', () => {
+          w.show()
+        })
       }
       // w.loadURL(`file://${__dirname}/../${page}`)
       // w.webContents.openDevTools({mode: 'detach'})
