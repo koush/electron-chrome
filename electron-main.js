@@ -3,6 +3,7 @@ const {app, protocol} = electron;
 const {BrowserWindow} = electron;
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 global.chromeManifest = null;
 global.chromeAppDir;
@@ -34,11 +35,77 @@ global.chromeAppDir;
     app.exit(1);
   }
 
-  console.log(manifest.name);
+  if (manifest.nacl_modules) {
+    // this nmf file needs to exist, and needs to have these entries.
+    // normally, it would be cross platform toolchains like clang-newlib, or glibc,
+    // but electron does not support nacl or pnacl.
+    // electron only supports host pepper plugins.
+    // put in these invalid native host entries that Chrome happily ignores.
+    // {
+    //   "files": {},
+    //   "program": {
+    //     "mac": {
+    //       "url": "mac/video_decode.so"
+    //     },
+    //     "windows": {
+    //       "url": "windows/video_decode.dll"
+    //     },
+    //     "linux": {
+    //       "url": "linux/video_decode.so"
+    //     }
+    //   }
+    // }
 
-  var ppapiPath = '/Volumes/Android/Gradle/Vysor/Chrome/vysor/video_decode/mac/Release/video_decode.so'
-  console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
-  app.commandLine.appendSwitch('register-pepper-plugins', ppapiPath + ';application/x-ppapi-vysor');
+    var hostMap = {
+      "darwin": "mac",
+      "win" : "windows",
+      "linux": "linux",
+    }
+
+    var host = hostMap[os.platform()];
+    if (host) {
+      for (var nacl_module of manifest.nacl_modules) {
+        if (!nacl_module.path || !nacl_module.mime_type) {
+          console.error('nacl_module must have both path and mime_type keys');
+          continue;
+        }
+
+        var nmfPath = path.join(appDir, nacl_module.path);
+        try {
+          var nmf = JSON.parse(fs.readFileSync(nmfPath));
+        }
+        catch (e) {
+          console.error('error loading', nmfPath, 'skipping plugin')
+          continue;
+        }
+        if (!nmf.program) {
+          console.error('program key not found in native manifest file', nacl_module.path);
+          continue;
+        }
+
+        var program = nmf.program[host];
+        if (!program) {
+          console.error(host, 'key not found in native manifest file programs', nacl_module.path);
+          continue;
+        }
+
+        var url = program.url;
+        if (!url) {
+          console.error(url, 'key not found in native manifest file programs', nacl_module.path, host);
+          continue;
+        }
+
+        var ppapiPath = path.join(path.dirname(nmfPath), url);
+        var flag = ppapiPath + ';' + nacl_module.mime_type;
+        // console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
+        console.log('PPAPI path ' + flag);
+        app.commandLine.appendSwitch('register-pepper-plugins', flag);
+      }
+    }
+    else {
+      console.error("Not loading plugins, unknown host.");
+    }
+  }
 })();
 
 global.chromeRuntimeWindow = null;
