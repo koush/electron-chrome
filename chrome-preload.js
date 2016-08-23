@@ -136,22 +136,23 @@
     }.bind(this), 'close')
 
     this.innerBounds = {
-      get x() {
+      get left() {
         return w.getContentBounds().x;
       },
-      set x(x) {
+      set left(left) {
         var n = w.getContentBounds();
-        n.x = x;
+        n.x = left;
         w.setContentBounds(n)
       },
-      get y() {
+      get top() {
         return w.getContentBounds().y;
       },
-      set y(y) {
+      set top(top) {
         var n = w.getContentBounds();
-        n.y = y;
+        n.y = top;
         w.setContentBounds(n)
       },
+
       get width() {
         return w.getContentBounds().width;
       },
@@ -165,7 +166,7 @@
       },
       set height(h) {
         var n = w.getContentBounds();
-        n.h = h;
+        n.height = h;
         w.setContentBounds(n)
       }
     }
