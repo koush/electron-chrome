@@ -8,6 +8,8 @@
   const {makeEvent, safeWrapEvent} = require('./chrome-event.js');
 
   webFrame.registerURLSchemeAsSecure('chrome-extension')
+  webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
+  webFrame.registerURLSchemeAsPrivileged('chrome-extension')
 
   function throttleTimeout(token, item, throttle, cb) {
     if (!token)
@@ -91,18 +93,22 @@
     })
   }
 
-  chrome.syncFileSystem = {
-    requestFileSystem: function(cb) {
+  var chromeRequestSyncFileSystem = chrome.syncFileSystem.requestFileSystem;
+
+  chrome.syncFileSystem.requestFileSystem = function(cb) {
+    function cbError(e) {
       try {
-        chrome.runtime.lastError = new Error('not implemented');
+        chrome.runtime.lastError = e;
         if (cb) {
-          cb(null);
+          cb();
         }
       }
       finally {
         delete chrome.runtime.lastError;
       }
     }
+
+    chromeRequestSyncFileSystem(cb, cbError);
   }
 
   var localWindowCache = {};
@@ -178,7 +184,7 @@
     }
   }
 
-  var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized'];
+  var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized', 'focus'];
   for (var n in passthroughs) {
     (function() {
       var p = passthroughs[n];
@@ -246,20 +252,30 @@
 
   safeWrapEvent(selfBrowserWindow, chrome.storage.onChanged);
 
+  var appDir = remote.getGlobal('chromeAppDir');
   var chromeAppWindowCreate = chrome.app.window.create;
   chrome.app.window.create = function(page, options, cb) {
+    var cw = localWindowCache[options.id];
+    if (cw) {
+      // cw.focus();
+      return;
+    }
+
     chromeAppWindowCreate(options, function(w, existed) {
+      if (existed) {
+        // cw.focus();
+        return;
+      }
+
       var cw = new ChromeShimWindow(w);
       if (cb)
         cb(cw);
 
-      if (!existed) {
-        w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
-        w.once('ready-to-show', () => {
-          w.show()
-        })
-      }
-      // w.loadURL(`file://${__dirname}/../${page}`)
+      // w.loadURL(`file://${appDir}/${page}`)
+      w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
+      w.once('ready-to-show', () => {
+        w.show()
+      })
       // w.webContents.openDevTools({mode: 'detach'})
     });
   }
@@ -304,5 +320,5 @@
   window.require = require;
 
   // allow jquery to load
-  // delete window.module;
+  delete window.module;
 })();

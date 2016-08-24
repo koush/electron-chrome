@@ -112,6 +112,9 @@ var appDir;
   }
 })();
 
+// app.commandLine.appendSwitch('allow-file-access-from-files', null);
+// app.commandLine.appendSwitch('allow-file-access-from-files', 'true');
+
 global.chromeRuntimeWindow = null;
 function makeRuntimeWindow() {
   if (chromeRuntimeWindow) {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- This needs to be in the root directory of the Chrome app -->
+    <meta charset="utf-8">
+    <title>Background</title>
+
+    <script>
+    function appendScript(pathToScript) {
+      var head = document.getElementsByTagName("head")[0];
+      var js = document.createElement("script");
+      js.type = "text/javascript";
+      js.src = pathToScript;
+      head.appendChild(js);
+    }
+
+    var manifest = JSON.parse(require('fs').readFileSync('manifest.json').toString());
+    var scripts = manifest.app.background.scripts;
+    console.log(scripts);
+    for (var s in scripts) {
+      appendScript(scripts[s]);
+    }
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
