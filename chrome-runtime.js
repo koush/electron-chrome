@@ -65,10 +65,20 @@ function updateWindowMappings() {
     return w[k];
   }
 
+  function getWindowGlobals(id) {
+    var w = windowGlobals[id];
+    if (!w) {
+      console.error('windowGlobals not found', id);
+      return;
+    }
+    return w;
+  }
+
   evalFunc(createWindowGlobals);
   evalFunc(deleteWindowGlobals);
   evalFunc(setWindowGlobal);
   evalFunc(getWindowGlobal);
+  evalFunc(getWindowGlobals);
 })();
 
 var getWindowGlobal = remote.getGlobal('getWindowGlobal');

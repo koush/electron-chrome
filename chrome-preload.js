@@ -31,7 +31,15 @@
   selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
 
   var getWindowGlobal = remote.getGlobal('getWindowGlobal');
+  var getWindowGlobals = remote.getGlobal('getWindowGlobals');
   var setWindowGlobal = remote.getGlobal('setWindowGlobal');
+
+  (function() {
+    var currentWindowGlobals = getWindowGlobals(selfBrowserWindow.id);
+    for (var k in currentWindowGlobals) {
+      window[k] = currentWindowGlobals[k];
+    }
+  })();
 
   const autoUnregister = remote.getGlobal('autoUnregister');
   const safeRegister = remote.getGlobal('safeRegister');
