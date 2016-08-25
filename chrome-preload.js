@@ -26,6 +26,7 @@
   }
 
   var selfBrowserWindow = remote.getCurrentWindow();
+  var selfId = selfBrowserWindow.id;
 
   selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
   selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
@@ -44,81 +45,6 @@
   const autoUnregister = remote.getGlobal('autoUnregister');
   const safeRegister = remote.getGlobal('safeRegister');
 
-  chrome = remote.getGlobal('chrome');
-  function deepCopy(o, t) {
-    for (var k in o) {
-      var v = o[k];
-      if (v.constructor == Object)
-        t[k] = deepCopy(v, {});
-      else
-        t[k] = v;
-    }
-    return t;
-  }
-
-  chrome = deepCopy(chrome, {});
-
-  chrome.desktopCapture = {
-
-
-    chooseDesktopMedia: function(types, cb) {
-      console.log('choosing');
-
-      var chooser = new BrowserWindow({
-        title: 'Share Your Screen',
-        width: 1024,
-        height: 768
-      });
-
-      safeRegister(selfBrowserWindow, chooser, function() {
-        if (cb) {
-          cb();
-          cb = null;
-        }
-      }, 'close');
-      chooser.webContents.once('did-finish-load', function() {
-        console.log('didfinishload')
-        chooser.emit('pickDesktopMedia', types);
-      })
-      chooser.loadURL(`file://${__dirname}/chrome-desktopcapture-picker.html`);
-
-      safeRegister(selfBrowserWindow, chooser, function(id) {
-        console.log('chose', id);
-        if (cb) {
-          cb(id);
-          cb = null;
-        }
-      }, 'choseDesktopMedia')
-    }
-  }
-
-  chromeStorageLocalGet = chrome.storage.local.get;
-  chrome.storage.local.get = function(k, cb) {
-    chromeStorageLocalGet(k, function(d) {
-      // need to do this or we get a weird remoting object.
-      if (cb)
-        cb(JSON.parse(JSON.stringify(d)))
-    })
-  }
-
-  var chromeRequestSyncFileSystem = chrome.syncFileSystem.requestFileSystem;
-
-  chrome.syncFileSystem.requestFileSystem = function(cb) {
-    function cbError(e) {
-      try {
-        chrome.runtime.lastError = e;
-        if (cb) {
-          cb();
-        }
-      }
-      finally {
-        delete chrome.runtime.lastError;
-      }
-    }
-
-    chromeRequestSyncFileSystem(cb, cbError);
-  }
-
   var localWindowCache = {};
   function ChromeShimWindow(w) {
     // cache this for close events, becomes inaccessible.
@@ -132,10 +58,11 @@
 
     this.contentWindow = new Proxy({}, {
       get: function(target, name) {
-        return window[name] || getWindowGlobal(nativeId, name);
+        return getWindowGlobal(nativeId, name);
       },
       set: function(target, name, value) {
-        window[name] = value;
+        if (nativeId == selfId)
+          window[name] = value;
         return setWindowGlobal(nativeId, name, value);
       }
     });
@@ -235,6 +162,124 @@
   selfWindow.w.on('move', save);
   selfWindow.w.webContents.on('devtools-opened', save);
   selfWindow.w.webContents.on('devtools-closed', save);
+
+  chrome = remote.getGlobal('chrome');
+  function deepCopy(o, t) {
+    for (var k in o) {
+      var v = o[k];
+      if (v.constructor == Object)
+        t[k] = deepCopy(v, {});
+      else
+        t[k] = v;
+    }
+    return t;
+  }
+
+  chrome = deepCopy(chrome, {});
+
+  chrome.desktopCapture = {
+    chooseDesktopMedia: function(types, cb) {
+      console.log('choosing');
+
+      var chooser = new BrowserWindow({
+        title: 'Share Your Screen',
+        width: 1024,
+        height: 768
+      });
+
+      safeRegister(selfBrowserWindow, chooser, function() {
+        if (cb) {
+          cb();
+          cb = null;
+        }
+      }, 'close');
+      chooser.webContents.once('did-finish-load', function() {
+        console.log('didfinishload')
+        chooser.emit('pickDesktopMedia', types);
+      })
+      chooser.loadURL(`file://${__dirname}/chrome-desktopcapture-picker.html`);
+
+      safeRegister(selfBrowserWindow, chooser, function(id) {
+        console.log('chose', id);
+        if (cb) {
+          cb(id);
+          cb = null;
+        }
+      }, 'choseDesktopMedia')
+    }
+  }
+
+  function unremote(v) {
+    return JSON.parse(JSON.stringify(v))
+  }
+
+  function errorWrappedCallback(cb) {
+    return function(e, v) {
+      if (!cb)
+        return;
+      if (e) {
+        try {
+          chrome.runtime.lastError = new Error(e);
+          if (cb) {
+            cb();
+          }
+        }
+        finally {
+          delete chrome.runtime.lastError;
+        }
+      }
+      else {
+        cb(unremote(v));
+      }
+    }
+  }
+
+  function wrap1Arg(f) {
+    return function(v, cb) {
+      return f(v, errorWrappedCallback(cb));
+    }
+  }
+
+  chrome.identity.getAuthToken = wrap1Arg(chrome.identity.getAuthToken);
+  chrome.identity.launchWebAuthFlow = wrap1Arg(chrome.identity.launchWebAuthFlow);
+
+  var chromeNotificationsCreate = chrome.notifications.create;
+  chrome.notifications.create = function() {
+    var nid;
+    var opts;
+    var cb;
+    if (arguments.length == 0)
+      throw new Error('arguments: (optional) notificationId, options, (optional) callback');
+    var i = 0;
+    if (typeof arguments[0] == 'string') {
+      if (arguments.length == 1)
+        throw new Error('arguments: (optional) notificationId, options, (optional) callback');
+      nid = arguments[i++];
+    }
+    opts = arguments[i++];
+    if (i < arguments.length)
+      cb = arguments[i++];
+    else
+      cb = function() {};
+
+    chromeNotificationsCreate(nid, opts, cb);
+  }
+
+  var chromeStorageLocalGet = chrome.storage.local.get;
+  chrome.storage.local.get = function(k, cb) {
+    chromeStorageLocalGet(k, function(d) {
+      // need to do this or we get a weird remoting object.
+      if (cb)
+        cb(unremote(d))
+    })
+  }
+
+  var chromeRequestSyncFileSystem = chrome.syncFileSystem.requestFileSystem;
+
+  chrome.syncFileSystem.requestFileSystem = function(cb) {
+    chromeRequestSyncFileSystem(errorWrappedCallback(cb));
+  };
+
 
   (function() {
     let rightClickPosition = null

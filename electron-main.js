@@ -1,3 +1,5 @@
+console.log('==========', ({}).constructor.name);
+
 const electron = require('electron');
 const {app, protocol, BrowserWindow} = electron;
 const path = require('path');
@@ -133,6 +135,7 @@ function makeRuntimeWindow() {
   chromeRuntimeWindow.loadURL(`file://${__dirname}/chrome-runtime.html`)
   chromeRuntimeWindow.webContents.openDevTools({mode: 'detach'});
   chromeRuntimeWindow.hide();
+  chromeRuntimeWindow.on('show', chromeRuntimeWindow.hide.bind(chromeRuntimeWindow));
 }
 
 function registerProtocol() {

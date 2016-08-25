@@ -18,7 +18,7 @@ exports.makeEvent = function makeEvent(runtime) {
   }
 }
 
-exports.safeWrapEvent = function makeEvent(w, e) {
+exports.safeWrapEvent = function safeWrapEvent(w, e) {
   var addListener = e.addListener;
 
   var autoUnregister = require('electron').remote.getGlobal('autoUnregister');
