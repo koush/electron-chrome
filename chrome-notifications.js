@@ -4,29 +4,34 @@ var openNotifications = {};
 
 var notifications = exports;
 
+var selfWindow = remote.getCurrentWindow();
+const safeRegister = remote.getGlobal('safeRegister');
+
 notifications.create = function(nid, opts, cb) {
   var buttons = (opts.buttons || [])
   .map(item => item.title);
   const n = notifier.notify(opts.title, {
     icon: opts.iconUrl,
     message: opts.message,
-    buttons: buttons
+    buttons: buttons,
+    vertical: true,
   });
 
   openNotifications[nid] = n;
 
-  n.on('close', function() {
+
+  safeRegister(selfWindow, n, function() {
     chrome.notifications.onClosed.invokeListeners(null, [nid]);
     delete openNotifications[n];
-  })
+  }, 'close')
 
-  n.on('clicked', function() {
+  safeRegister(selfWindow, n, function() {
     chrome.notifications.onClicked.invokeListeners(null, [nid])
-  })
+  }, 'clicked')
 
-  n.on('buttonClicked', function(text, buttonIndex) {
+  safeRegister(selfWindow, n, function() {
     chrome.notifications.onButtonClicked.invokeListeners(null, [nid, buttonIndex]);
-  })
+  }, 'buttonClicked')
 
   cb(nid);
 }

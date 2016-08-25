@@ -1,6 +1,6 @@
 const path = require('path');
-const {remote} = require('electron');
-const {BrowserWindow, app, protocol, shell} = remote;
+const {remote, shell} = require('electron');
+const {BrowserWindow, app, protocol} = remote;
 var {makeEvent} = require('./chrome-event.js');
 const fs = require('fs');
 

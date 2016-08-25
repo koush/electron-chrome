@@ -2,7 +2,7 @@
   if (navigator.userAgent.indexOf('Electron') == -1)
     return;
 
-  const {remote, desktopCapturer, webFrame} = require('electron')
+  const {remote, desktopCapturer, webFrame, shell} = require('electron')
   const {Menu, MenuItem, BrowserWindow} = remote;
   const {app} = remote;
   const {makeEvent, safeWrapEvent} = require('./chrome-event.js');
@@ -234,12 +234,19 @@
     }
   }
 
+  function wrap0Arg(f) {
+    return function(cb) {
+      return f(errorWrappedCallback(cb));
+    }
+  }
+
   function wrap1Arg(f) {
     return function(v, cb) {
       return f(v, errorWrappedCallback(cb));
     }
   }
 
+  chrome.identity.getProfileUserInfo = wrap0Arg(chrome.identity.getProfileUserInfo);
   chrome.identity.getAuthToken = wrap1Arg(chrome.identity.getAuthToken);
   chrome.identity.launchWebAuthFlow = wrap1Arg(chrome.identity.launchWebAuthFlow);
 
@@ -331,6 +338,14 @@
       })
       // w.webContents.openDevTools({mode: 'detach'})
     });
+  }
+
+  chrome.browser = {
+    openTab: function(opts) {
+      shell.openExternal(opts.url);
+      if (opts.cb)
+        process.nextTick(opts.cb);
+    }
   }
 
   chrome.app.window.get = function(id) {
