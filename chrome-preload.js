@@ -2,7 +2,7 @@
   if (navigator.userAgent.indexOf('Electron') == -1)
     return;
 
-  const {remote, desktopCapturer, webFrame, shell} = require('electron')
+  const {remote, desktopCapturer, webFrame, shell, ipcRenderer} = require('electron')
   const {Menu, MenuItem, BrowserWindow} = remote;
   const {app} = remote;
   const {makeEvent, safeWrapEvent} = require('./chrome-event.js');
@@ -45,6 +45,10 @@
   const autoUnregister = remote.getGlobal('autoUnregister');
   const safeRegister = remote.getGlobal('safeRegister');
 
+  ipcRenderer.on('contentWindow', function(e, name) {
+    window[name] = getWindowGlobal(selfId, name);
+  })
+
   var localWindowCache = {};
   function ChromeShimWindow(w) {
     // cache this for close events, becomes inaccessible.
@@ -56,25 +60,30 @@
     if (!this.id)
       console.error('window id null?')
 
+    var closed;
+    safeRegister(selfBrowserWindow, w, function() {
+      closed = true;
+      this.onClosed.invokeListeners();
+      delete localWindowCache[this.id];
+    }.bind(this), 'close')
+
     this.contentWindow = new Proxy({}, {
       get: function(target, name) {
         return getWindowGlobal(nativeId, name);
       },
       set: function(target, name, value) {
+        setWindowGlobal(nativeId, name, value);
         if (nativeId == selfId)
           window[name] = value;
-        return setWindowGlobal(nativeId, name, value);
+        else if (!closed)
+          w.webContents.send('contentWindow', name);
+        return value;
       }
     });
 
     this.onFullscreened = makeEvent();
-
     this.onClosed = makeEvent();
 
-    safeRegister(selfBrowserWindow, w, function() {
-      this.onClosed.invokeListeners();
-      delete localWindowCache[this.id];
-    }.bind(this), 'close')
 
     this.innerBounds = {
       get left() {
