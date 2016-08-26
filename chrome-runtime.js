@@ -5,7 +5,7 @@ var {makeEvent} = require('./chrome-event.js');
 const fs = require('fs');
 
 var manifest = remote.getGlobal('chromeManifest');
-var appDir = remote.getGlobal('chromeAppDir');
+var appId = remote.getGlobal('chromeAppId');
 
 console.log('chrome runtime started');
 
@@ -335,10 +335,10 @@ chrome.app.window.create = function(options, cb) {
   function save() {
     saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
       var data = {
-        contentBounds: selfWindow.w.getContentBounds(),
-        isDevToolsOpened: selfWindow.w.webContents.isDevToolsOpened()
+        contentBounds: w.getContentBounds(),
+        isDevToolsOpened: w.webContents.isDevToolsOpened()
       }
-      localStorage.setItem('window-settings-' + selfWindow.id, JSON.stringify(data));
+      localStorage.setItem('window-settings-' + w.id, JSON.stringify(data));
     })
   };
 
@@ -375,6 +375,9 @@ function createBackground() {
 }
 
 function calculateId() {
+  if (appId)
+    return Promise.resolve(appId).then(() => chrome.runtime.id = appId);
+
   return new Promise((resolve, reject) => {
     var key = manifest.key;
     var buffer = Buffer.from(key, 'base64');
@@ -414,7 +417,21 @@ function registerChromeNotificationWorker() {
   })
 }
 
+
+function maybeDownloadCrx() {
+  if (manifest != null)
+    return Promise.resolve();
+
+  return require('./chrome-update.js').downloadLatestVersion(appId)
+  .then(() => {
+    // reload
+    // https://www.youtube.com/watch?v=VEjIJz077k0
+  })
+}
+
+
 Promise.all([
+  maybeDownloadCrx(),
   calculateId(),
   identity.startAuthServer(),
   // registerChromeNotificationWorker(),

@@ -3,42 +3,64 @@ const {app, protocol, BrowserWindow, shell} = electron;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const http = require('http');
 
 // need this to catch and handle _blank pages
 global.shell = shell;
 
 global.chromeManifest = null;
-global.chromeAppDir;
+global.chromeAppId = null;
 var manifest
 var appDir;
+var appCrx;
+var appId;
 (function() {
   for (var arg of process.argv) {
     if (arg.startsWith('--app-dir=')) {
       appDir = arg.substring('--app-dir='.length)
       break;
     }
+    else if (arg.startsWith('--app-id=')) {
+      appId = arg.substring('--app-id='.length);
+      console.log(appId);
+      break;
+    }
   }
 
-  if (!appDir) {
-    console.error('Usage: electron . --app-dir=/path/to/chrome/app');
+  if (appId) {
+    try {
+      var result = require('./chrome-update.js').unpackLatestInstalledCrx(appId);
+      manifest = result.manifest;
+      appDir = result.path;
+      console.log(manifest);
+      global.chromeManifest = manifest;
+    }
+    catch (e) {
+      console.error(e);
+      global.chromeAppId = appId;
+    }
+  }
+  else if (appDir) {
+    appDir = path.join(__dirname, appDir);
+    console.log(`starting chrome app at ${appDir}`);
+
+    var manifestPath = path.join(appDir, 'manifest.json');
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestPath).toString());
+      chromeManifest = manifest;
+    }
+    catch (e) {
+      console.error('unable to load manifest.json', e);
+      app.exit(1);
+    }
+  }
+  else {
+    console.error('Usage:');
+    console.error('electron . --app-dir=/path/to/chrome/app');
+    console.error('electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm');
     app.exit(1);
   }
-
-  appDir = path.join(__dirname, appDir);
-  console.log(`starting chrome app at ${appDir}`);
-  chromeAppDir = appDir;
-
-  var manifestPath = path.join(appDir, 'manifest.json');
-  try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath).toString());
-    chromeManifest = manifest;
-  }
-  catch (e) {
-    console.error('unable to load manifest.json', e);
-    app.exit(1);
-  }
-
-  if (manifest.nacl_modules) {
+  if (manifest && manifest.nacl_modules) {
     // https://developer.chrome.com/extensions/manifest/nacl_modules
 
     // this nmf file needs to exist, and needs to have these entries.
@@ -186,15 +208,10 @@ app.on('ready', function() {
   if (process.argv.indexOf('--silent') != -1)
     wantsActivate = false;
 
-  if (false) {
+  registerProtocol()
+  .then(function() {
     makeRuntimeWindow();
-  }
-  else {
-    registerProtocol()
-    .then(function() {
-      makeRuntimeWindow();
-    })
-  }
+  })
 })
 
 global.isReloading = false;

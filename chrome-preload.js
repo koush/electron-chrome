@@ -283,7 +283,6 @@
 
   safeWrapEvent(selfBrowserWindow, chrome.storage.onChanged);
 
-  var appDir = remote.getGlobal('chromeAppDir');
   var chromeAppWindowCreate = chrome.app.window.create;
   chrome.app.window.create = function(page, options, cb) {
     var cw = localWindowCache[options.id];
@@ -303,6 +302,7 @@
         cb(cw);
 
       // load happens after callback to allow contentWindow stuff to be set.
+      // var appDir = remote.getGlobal('chromeAppDir');
       // w.loadURL(`file://${appDir}/${page}`)
       w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
       // this needs to happen only after the load.

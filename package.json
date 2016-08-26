@@ -7,6 +7,8 @@
     "start": "electron ."
   },
   "dependencies": {
+    "mkdirp": "",
+    "adm-zip": "",
     "electron-notifications": "https://github.com/koush/electron-notifications"
   },
   "devDependencies": {
