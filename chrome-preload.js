@@ -282,6 +282,9 @@
   })();
 
   safeWrapEvent(selfBrowserWindow, chrome.storage.onChanged);
+  safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessage);
+  safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessageExternal);
+  safeWrapEvent(selfBrowserWindow, chrome.app.runtime.onLaunched);
 
   var chromeAppWindowCreate = chrome.app.window.create;
   chrome.app.window.create = function(page, options, cb) {

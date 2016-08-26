@@ -37,22 +37,25 @@ function getLatestVersion(id) {
     .then(text => {
       var d = jq.parseXML(text);
       var updatecheck = jq(d).find('app>updatecheck')[0];
-      var codebase = updatecheck.getAttribute('codebase');
-      return updatecheck.getAttribute('version');
+      resolve({
+        codebase: updatecheck.getAttribute('codebase'),
+        version: updatecheck.getAttribute('version'),
+      });
     });
   });
 }
 
-function downloadCrx(id, version) {
+function downloadCrx(id, crxInfo) {
+  const {version, codebase} = crxInfo;
   return new Promise((resolve, reject) => {
     var crxs = getCrxDir(id);
     var crxPath = path.join(crxs, 'app-' + version + '.crx');
     if (fs.existsSync(crxPath)) {
       console.log('crx exists');
-      return crxPath;
+      resolve(crxPath);
     }
     else {
-      console.log('fetching crx');
+      console.log(`fetching crx ${codebase}`);
       return fetch(codebase)
       .then(res => {
         // ugh barf, whatever. fix this later to stream to file.
@@ -62,6 +65,7 @@ function downloadCrx(id, version) {
         // save to tmp, then rename to prevent partial writes.
         return new Promise((resolve, reject) => {
           var crxTmpPath = crxPath + '.tmp';
+          console.log(`writing crx to ${crxPath}`)
           fs.writeFile(crxTmpPath, Buffer.from(ab), function(e) {
             if (e)
               reject('unable to save crx file');
@@ -78,8 +82,8 @@ function downloadCrx(id, version) {
 
 function downloadLatestVersion(id) {
   return getLatestVersion(id)
-  .then(version => {
-    return downloadCrx(id, version);
+  .then(latest => {
+    return downloadCrx(id, latest);
   });
 }
 
@@ -98,6 +102,14 @@ var deleteFolderRecursive = function(inPath) {
 };
 
 function extractCrx(crxPath) {
+  var unpackedPath = crxPath + '-unpacked';
+  if (fs.existsSync(unpackedPath)) {
+    return {
+      manifest: JSON.parse(fs.readFileSync(path.join(unpackedPath, 'manifest.json'))),
+      path: unpackedPath,
+    };
+  }
+
   console.log('extracting', crxPath);
   var b = fs.readFileSync(crxPath);
   var arrayBuffer = new Uint8Array(b).buffer;
@@ -110,13 +122,13 @@ function extractCrx(crxPath) {
   b = Buffer.from(arrayBuffer, offset);
   var zip = new AdmZip(b);
 
-  var unpackedPath = crxPath + '-unpacked';
   var tmp = unpackedPath + '.tmp';
   deleteFolderRecursive(unpackedPath);
   deleteFolderRecursive(tmp);
   zip.extractAllTo(tmp, true);
   fs.renameSync(tmp, unpackedPath);
 
+  console.log('extracted', unpackedPath);
   return {
     manifest: JSON.parse(fs.readFileSync(path.join(unpackedPath, 'manifest.json'))),
     path: unpackedPath,

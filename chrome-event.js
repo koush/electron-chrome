@@ -1,4 +1,4 @@
-exports.makeEvent = function makeEvent(runtime) {
+exports.makeEvent = function makeEvent() {
   var listeners = [];
   return {
     addListener: function(l) {

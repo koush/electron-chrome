@@ -34,6 +34,7 @@ var appId;
       appDir = result.path;
       console.log(manifest);
       global.chromeManifest = manifest;
+      global.chromeAppId = appId;
     }
     catch (e) {
       console.error(e);
@@ -87,7 +88,7 @@ var appId;
 
     var hostMap = {
       "darwin": "mac",
-      "win" : "windows",
+      "win32" : "windows",
       "linux": "linux",
     }
 

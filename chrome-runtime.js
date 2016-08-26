@@ -3,6 +3,7 @@ const {remote, shell} = require('electron');
 const {BrowserWindow, app, protocol} = remote;
 var {makeEvent} = require('./chrome-event.js');
 const fs = require('fs');
+const os = require('os');
 
 var manifest = remote.getGlobal('chromeManifest');
 var appId = remote.getGlobal('chromeAppId');
@@ -96,7 +97,26 @@ global.chrome = {
   }
 };
 
+var hostMap = {
+  "darwin": "mac",
+  "win32" : "win",
+  "linux": "linux",
+}
+
+var archMap = {
+  "arm": "arm",
+  "arm64": "arm",
+  "x86": "x86-32",
+  "x32": "x86-32", // ??
+  "x64": "x86-64",
+}
+
 chrome.runtime = {
+  onMessage: makeEvent(),
+  onMessageExternal: makeEvent(),
+  sendMessage: function() {
+    console.log('dropping message on the floor', arguments);
+  },
   // directory: appDir,
   manifest: manifest,
   requestUpdateCheck: function(cb) {
@@ -118,10 +138,17 @@ chrome.runtime = {
     setTimeout(function() {
       selfWindow.close();
     }, 200)
+  },
+  getPlatformInfo: function(cb) {
+    cb({
+      os: hostMap[os.platform()],
+      arch: archMap[os.arch()],
+      nacl_arch: archMap[os.arch()],
+    })
   }
 };
 
-chrome.app.runtime.onLaunched = makeEvent(true);
+chrome.app.runtime.onLaunched = makeEvent();
 
 function loadWindowSettings(id) {
   return JSON.parse(localStorage.getItem('window-settings-' + id)) || {};
@@ -167,8 +194,12 @@ const safeRegister = remote.getGlobal('safeRegister');
 const safeCallback = remote.getGlobal('safeCallback');
 
 safeRegister(selfWindow, app, function() {
-  chrome.app.runtime.onLaunched.invokeListeners();
-}, 'activate')
+  chrome.app.runtime.onLaunched.invokeListeners(null, [{
+    isKioskSession: false,
+    isPublicSession: false,
+    source: "command_line"
+  }]);
+}, 'activate');
 
 function deepFunctionCopy(t, f) {
   return function() {
@@ -208,8 +239,12 @@ chrome.syncFileSystem = {
   }
 }
 
+chrome.contextMenus = require('./chrome-contextmenus.js');
+
 var identity = require('./chrome-identity.js');
 chrome.identity = identity.identity;
+
+chrome.system = require('./chrome-system.js');
 
 chrome.notifications = require('./chrome-notifications.js');
 chrome.notifications.onClicked = makeEvent();
@@ -217,7 +252,7 @@ chrome.notifications.onButtonClicked = makeEvent();
 chrome.notifications.onClosed = makeEvent();
 
 chrome.storage = {};
-chrome.storage.onChanged = makeEvent(true);
+chrome.storage.onChanged = makeEvent();
 
 chrome.storage.local = {
   set: function(o, cb) {
@@ -368,15 +403,20 @@ function createBackground() {
     }
     safeRegister(selfWindow, bg, bg.hide.bind(bg), 'show');
     // bg.loadURL(`file://${appDir}/electron-background.html`)
-    bg.loadURL(`chrome-extension://${chrome.runtime.id}/_generated_background_page.html`);
+    var bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
+    console.log(`opening ${bgUrl}`)
+    bg.loadURL(bgUrl);
     bg.webContents.openDevTools({mode: 'detach'})
-    bg.hide();
+    // bg.hide();
   })
 }
 
 function calculateId() {
-  if (appId)
-    return Promise.resolve(appId).then(() => chrome.runtime.id = appId);
+  if (appId) {
+    console.log(appId);
+    chrome.runtime.id = appId;
+    return Promise.resolve(appId);
+  }
 
   return new Promise((resolve, reject) => {
     var key = manifest.key;
