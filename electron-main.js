@@ -1,10 +1,11 @@
-console.log('==========', ({}).constructor.name);
-
 const electron = require('electron');
-const {app, protocol, BrowserWindow} = electron;
+const {app, protocol, BrowserWindow, shell} = electron;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+
+// need this to catch and handle _blank pages
+global.shell = shell;
 
 global.chromeManifest = null;
 global.chromeAppDir;

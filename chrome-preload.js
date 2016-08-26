@@ -11,25 +11,13 @@
   webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
   webFrame.registerURLSchemeAsPrivileged('chrome-extension')
 
-  function throttleTimeout(token, item, throttle, cb) {
-    if (!token)
-      token = { items:[] };
-    token.items.push(item);
-    if (!token.timeout) {
-      token.timeout = setTimeout(function() {
-        delete token.timeout;
-        cb(token.items);
-        token.items = [];
-      }, throttle);
-    }
-    return token;
-  }
-
   var selfBrowserWindow = remote.getCurrentWindow();
   var selfId = selfBrowserWindow.id;
 
   selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
   selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
+
+
 
   var getWindowGlobal = remote.getGlobal('getWindowGlobal');
   var getWindowGlobals = remote.getGlobal('getWindowGlobals');
@@ -145,32 +133,6 @@
     if (l)
       l();
   }
-
-  function loadWindowSettings(id) {
-    return JSON.parse(localStorage.getItem('window-settings-' + id)) || {};
-  }
-
-  // restore the dev tools
-  var myWindowSettings = loadWindowSettings(selfWindow.id);
-  if (myWindowSettings.isDevToolsOpened) {
-    selfWindow.w.webContents.openDevTools({mode: 'detach'});
-  }
-
-  var saveThrottle;
-  function save() {
-    saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
-      var data = {
-        contentBounds: selfWindow.w.getContentBounds(),
-        isDevToolsOpened: selfWindow.w.webContents.isDevToolsOpened()
-      }
-      localStorage.setItem('window-settings-' + selfWindow.id, JSON.stringify(data));
-    })
-  };
-
-  selfWindow.w.on('resize', save);
-  selfWindow.w.on('move', save);
-  selfWindow.w.webContents.on('devtools-opened', save);
-  selfWindow.w.webContents.on('devtools-closed', save);
 
   chrome = remote.getGlobal('chrome');
   function deepCopy(o, t) {
@@ -330,7 +292,7 @@
       return;
     }
 
-    chromeAppWindowCreate(options, function(w, existed) {
+    chromeAppWindowCreate(options, function(w, existed, settings) {
       if (existed) {
         // cw.focus();
         return;
@@ -340,8 +302,12 @@
       if (cb)
         cb(cw);
 
+      // load happens after callback to allow contentWindow stuff to be set.
       // w.loadURL(`file://${appDir}/${page}`)
       w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
+      // this needs to happen only after the load.
+      if (settings.isDevToolsOpened)
+        selfWindow.w.webContents.openDevTools({mode: 'detach'});
       w.once('ready-to-show', () => {
         w.show()
       })

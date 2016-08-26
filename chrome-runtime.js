@@ -20,6 +20,9 @@ evalFunc(makeEvent);
 makeEvent = remote.getGlobal('makeEvent');
 
 var selfWindow = remote.getCurrentWindow();
+// need to watch for a lot of close events...
+selfWindow.setMaxListeners(1000);
+
 var windows = {};
 var windowMappings = {
   chromeToElectron: {},
@@ -123,7 +126,6 @@ chrome.app.runtime.onLaunched = makeEvent(true);
 function loadWindowSettings(id) {
   return JSON.parse(localStorage.getItem('window-settings-' + id)) || {};
 }
-
 
 (function() {
   function autoUnregister(w, e, f, name) {
@@ -253,6 +255,29 @@ chrome.storage.local = {
   }
 };
 
+function throttleTimeout(token, item, throttle, cb) {
+  if (!token)
+    token = { items:[] };
+  token.items.push(item);
+  if (!token.timeout) {
+    token.timeout = setTimeout(function() {
+      delete token.timeout;
+      cb(token.items);
+      token.items = [];
+    }, throttle);
+  }
+  return token;
+}
+
+evalFunc(function preventBrowserWindow(w) {
+  w.webContents.on('new-window', function(e, url) {
+    e.preventDefault();
+    shell.openExternal(url);
+  })
+})
+
+var preventBrowserWindow = remote.getGlobal('preventBrowserWindow');
+
 chrome.app.window.create = function(options, cb) {
   var id = options.id;
   var w = windows[id];
@@ -284,6 +309,9 @@ chrome.app.window.create = function(options, cb) {
   }
 
   w = new BrowserWindow(opts);
+
+  preventBrowserWindow(w);
+
   // need this cached because it becomes unaccessible after close
   var nativeId = w.id;
   windows[id] = w;
@@ -303,7 +331,23 @@ chrome.app.window.create = function(options, cb) {
     }
   }, 'close')
 
-  cb(w);
+  var saveThrottle;
+  function save() {
+    saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
+      var data = {
+        contentBounds: selfWindow.w.getContentBounds(),
+        isDevToolsOpened: selfWindow.w.webContents.isDevToolsOpened()
+      }
+      localStorage.setItem('window-settings-' + selfWindow.id, JSON.stringify(data));
+    })
+  };
+
+  safeRegister(selfWindow, w, save, 'resize');
+  safeRegister(selfWindow, w, save, 'move');
+  safeRegister(selfWindow, w, save, 'devtools-opened');
+  safeRegister(selfWindow, w, save, 'devtools-closed');
+
+  cb(w, false, windowSettings);
 }
 
 function createBackground() {
