@@ -104,8 +104,8 @@ exports.window.create = function(options, cb) {
 
   safeRegister(selfWindow, w, save, 'resize');
   safeRegister(selfWindow, w, save, 'move');
-  safeRegister(selfWindow, w, save, 'devtools-opened');
-  safeRegister(selfWindow, w, save, 'devtools-closed');
+  safeRegister(selfWindow, w.webContents, save, 'devtools-opened');
+  safeRegister(selfWindow, w.webContents, save, 'devtools-closed');
 
   cb(w, false, windowSettings);
 }

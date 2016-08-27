@@ -75,7 +75,9 @@ chrome.runtime = {
   },
   // directory: appDir,
   manifest: manifest,
+  onUpdateAvailable: makeEvent(),
   requestUpdateCheck: function(cb) {
+    cb = cb || function() {};
     // status, details
     chromeAppUpdater.getLatestVersion(appId)
     .then(latest => {
@@ -87,11 +89,14 @@ chrome.runtime = {
         return;
       }
 
+      const details = {
+        version: latest.version,
+      };
+
       chromeAppUpdater.downloadCrx(appId, latest)
       .then(function() {
-        cb('update_available', {
-          version: latest.version,
-        })
+        chrome.runtime.onUpdateAvailable.invokeListeners(null, [details])
+        cb('update_available', details);
       })
     })
   },
@@ -140,6 +145,12 @@ chrome.storage = require('./chrome-storage');
 
 const {throttleTimeout} = require('./util.js');
 
+function startUpdateChecker() {
+  chrome.runtime.requestUpdateCheck();
+  // do this every 30 minutes
+  setInterval(chrome.runtime.requestUpdateCheck, 30 * 60 * 1000);
+}
+
 function createBackground() {
   chrome.app.window.create({
     id: '__background',
@@ -152,6 +163,9 @@ function createBackground() {
       console.log('background onload')
       if (remote.getGlobal('wantsActivate'))
         app.emit('activate');
+
+        // trigger an update check
+        startUpdateChecker();
     })
     safeRegister(selfWindow, bg, bg.hide.bind(bg), 'show');
     // bg.loadURL(`file://${appDir}/electron-background.html`)
