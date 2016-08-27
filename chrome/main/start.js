@@ -16,10 +16,7 @@ var mainGlobals = require('./global.js');
 // the runtime will need these two values later
 global.chromeManifest = null;
 global.chromeAppId = null;
-var manifest
 var appDir;
-var appCrx;
-var appId;
 (function() {
   for (var arg of process.argv) {
     if (arg.startsWith('--app-dir=')) {
@@ -29,25 +26,22 @@ var appId;
     }
     else if (arg.startsWith('--app-id=')) {
       // load an app from the chrome store, will download crx.
-      appId = arg.substring('--app-id='.length);
-      console.log(appId);
+      global.chromeAppId = arg.substring('--app-id='.length);
+      console.log(global.chromeAppId);
       break;
     }
   }
 
-  if (appId) {
+  if (global.chromeAppId) {
     try {
       var result = require('./chrome/chrome-update.js').unpackLatestInstalledCrx(appId);
-      manifest = result.manifest;
+      global.chromeManifest = result.manifest;
       appDir = result.path;
-      console.log(manifest);
       global.chromeManifest = manifest;
-      global.chromeAppId = appId;
     }
     catch (e) {
       console.error(e);
       // having only this will trigger the runtime to attempt a download from the chrome store.
-      global.chromeAppId = appId;
     }
   }
   else if (appDir) {
@@ -56,8 +50,7 @@ var appId;
 
     var manifestPath = path.join(appDir, 'manifest.json');
     try {
-      manifest = JSON.parse(fs.readFileSync(manifestPath).toString());
-      chromeManifest = manifest;
+      global.chromeManifest = JSON.parse(fs.readFileSync(manifestPath).toString());
     }
     catch (e) {
       console.error('unable to load manifest.json', e);
@@ -70,7 +63,7 @@ var appId;
     console.error('electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm');
     app.exit(1);
   }
-  if (manifest && manifest.nacl_modules) {
+  if (global.chromeManifest && global.chromeManifest.nacl_modules) {
     // https://developer.chrome.com/extensions/manifest/nacl_modules
 
     // this nmf file needs to exist, and needs to have these entries.
@@ -103,7 +96,7 @@ var appId;
 
     var host = hostMap[os.platform()];
     if (host) {
-      for (var nacl_module of manifest.nacl_modules) {
+      for (var nacl_module of global.chromeManifest.nacl_modules) {
         if (!nacl_module.path || !nacl_module.mime_type) {
           console.error('nacl_module must have both path and mime_type keys');
           continue;
@@ -176,13 +169,51 @@ function makeRuntimeWindow() {
   chromeRuntimeWindow.on('show', chromeRuntimeWindow.hide.bind(chromeRuntimeWindow));
 }
 
+
+function calculateId() {
+  if (global.chromeAppId) {
+    return Promise.resolve(global.chromeAppId);
+  }
+
+  return new Promise((resolve, reject) => {
+    var key = global.chromeManifest.key;
+    var buffer = Buffer.from(key, 'base64');
+    const crypto = require('crypto');
+    var hash = crypto.createHash('sha256');
+
+    hash.on('readable', () => {
+      var data = hash.read();
+      if (!data) {
+        reject(new Error('no data from hash'));
+        return;
+      }
+
+      function translate(c) {
+        if (c >= '0' && c <= '9')
+          return String.fromCharCode('a'.charCodeAt(0) + (c - '0'))
+        return String.fromCharCode(c.charCodeAt(0) + 10)
+      }
+
+      data = data.toString('hex').substring(0, 32);
+      var id = data.split('').map(m => translate(m)).join('');
+      console.log('chrome app id', id);
+      global.chromeAppId = id;
+      resolve(id);
+
+    });
+    hash.write(buffer);
+    hash.end()
+  });
+}
+
+
 function registerProtocol() {
   return new Promise((resolve, reject) => {
     protocol.unregisterProtocol('chrome-extension', function() {
       var cache = {};
       protocol.registerBufferProtocol('chrome-extension', function(request, callback) {
         if (request.url == `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`) {
-          var scripts = manifest.app.background.scripts;
+          var scripts = global.chromeManifest.app.background.scripts;
           var scriptsString = scripts
           .map(s => `<script src="${s}" type="text/javascript"></script>`)
           .join('\n');
@@ -223,7 +254,10 @@ app.on('ready', function() {
   if (process.argv.indexOf('--silent') != -1)
     wantsActivate = false;
 
-  registerProtocol()
+  Promise.all([
+    calculateId(),
+    registerProtocol(),
+  ])
   .then(function() {
     makeRuntimeWindow();
   })

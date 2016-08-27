@@ -117,6 +117,12 @@ chrome.notifications.create = function() {
     nid = arguments[i++];
   }
   opts = arguments[i++];
+  if (opts.iconUrl) {
+    // resolve rel path to absolute path
+    var link = document.createElement("a");
+    link.href = opts.iconUrl;
+    opts.iconUrl = link.href;
+  }
   if (i < arguments.length)
     cb = arguments[i++];
   else

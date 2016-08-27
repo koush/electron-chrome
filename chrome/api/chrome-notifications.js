@@ -1,3 +1,7 @@
+const {
+  makeEvent,
+} = require('../main/global.js');
+
 const notifier = require('./electron-notifications')
 
 var openNotifications = {};
@@ -36,7 +40,7 @@ notifications.create = function(nid, opts, cb) {
     chrome.notifications.onClicked.invokeListeners(null, [nid])
   }, 'clicked')
 
-  safeRegister(selfWindow, n, function() {
+  safeRegister(selfWindow, n, function(text, buttonIndex) {
     chrome.notifications.onButtonClicked.invokeListeners(null, [nid, buttonIndex]);
   }, 'buttonClicked')
 
@@ -50,3 +54,7 @@ notifications.clear = function(nid, cb) {
   if (cb)
     cb(n != null);
 }
+
+notifications.onClicked = makeEvent();
+notifications.onButtonClicked = makeEvent();
+notifications.onClosed = makeEvent();

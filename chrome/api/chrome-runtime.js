@@ -16,7 +16,6 @@ const remote = require('electron').remote || {
 const manifest = remote.getGlobal('chromeManifest');
 const appId = remote.getGlobal('chromeAppId');
 
-
 if (!global.localStorage) {
   try {
     var dataPath = path.join(app.getPath('userData'), `${appId}.json`);
@@ -56,23 +55,8 @@ const selfWindow = remote.getCurrentWindow();
 if (selfWindow)
   selfWindow.setMaxListeners(1000);
 
-const windowMappings = {
-  chromeToElectron: {},
-  electronToChrome: {},
-};
-function updateWindowMappings() {
-  setGlobal('windowMappings', windowMappings);
-}
 
-var windows = {};
-
-
-global.chrome = {
-  app: {
-    window: {},
-    runtime: {},
-  }
-};
+global.chrome = {};
 
 var hostMap = {
   "darwin": "mac",
@@ -88,7 +72,10 @@ var archMap = {
   "x64": "x86-64",
 }
 
+const chromeAppUpdater = require('./chrome-update.js');
+
 chrome.runtime = {
+  id: appId,
   onMessage: makeEvent(),
   onMessageExternal: makeEvent(),
   sendMessage: function() {
@@ -98,10 +85,28 @@ chrome.runtime = {
   manifest: manifest,
   requestUpdateCheck: function(cb) {
     // status, details
+    chromeAppUpdater.getLatestVersion(appId)
+    .then(latest => {
+      console.log('latest version', latest);
+      if (latest.version <= manifest.version) {
+        cb('no_update', {
+          version: '',
+        });
+        return;
+      }
+
+      chromeAppUpdater.downloadCrx(appId, latest)
+      .then(function() {
+        cb('update_available', {
+          version: latest.version,
+        })
+      })
+    })
   },
   reload: function() {
     var hadWindows;
-    var backgroundId = windows['background'] && windows['background'].id;
+    const background = chrome.app.window.get('__background');
+    var backgroundId = background && background.id;
     console.log('shutting down');
     for (var w of BrowserWindow.getAllWindows()) {
       if (w != selfWindow) {
@@ -125,52 +130,7 @@ chrome.runtime = {
   }
 };
 
-chrome.app.runtime.onLaunched = makeEvent();
-
-function loadWindowSettings(id) {
-  return JSON.parse(localStorage.getItem('window-settings-' + id)) || {};
-}
-
-
-safeRegister(selfWindow, app, function() {
-  chrome.app.runtime.onLaunched.invokeListeners(null, [{
-    isKioskSession: false,
-    isPublicSession: false,
-    source: "command_line"
-  }]);
-}, 'activate');
-
-function deepFunctionCopy(t, f) {
-  return function() {
-    var args = Array.prototype.slice.call(arguments)
-    .map(m => deepCopy(m, {}));
-    return f.apply(t, args);
-  };
-}
-
-function deepCopy(v, visited) {
-  var ret;
-  if (typeof v == 'object') {
-    if (visited[v])
-      return visited[v];
-    ret = {};
-    visited[v] = ret;
-    for (var k in v) {
-      if (typeof v[k] == 'function')
-        ret[k] = deepFunctionCopy(v, v[k]);
-      else
-        ret[k] = deepCopy(v[k], visited);
-    }
-    return ret;
-  }
-
-  if (typeof v == 'function') {
-    return deepFunctionCopy(null, v);
-  }
-
-  return v;
-}
-
+chrome.app = require('./chrome-app.js');
 
 chrome.syncFileSystem = {
   requestFileSystem: function(cb) {
@@ -178,56 +138,13 @@ chrome.syncFileSystem = {
   }
 }
 
-chrome.contextMenus = require('./chrome-contextmenus.js');
-
-var identity = require('./chrome-identity.js');
+const identity = require('./chrome-identity.js');
 chrome.identity = identity.identity;
 
+chrome.contextMenus = require('./chrome-contextmenus.js');
 chrome.system = require('./chrome-system.js');
-
 chrome.notifications = require('./chrome-notifications.js');
-chrome.notifications.onClicked = makeEvent();
-chrome.notifications.onButtonClicked = makeEvent();
-chrome.notifications.onClosed = makeEvent();
-
-chrome.storage = {};
-chrome.storage.onChanged = makeEvent();
-
-chrome.storage.local = {
-  set: function(o, cb) {
-    for (var i in o) {
-      var oldValue = localStorage.getItem(i);
-      var newValue = o[i];
-      localStorage.setItem(i, JSON.stringify(newValue));
-      chrome.storage.onChanged.invokeListeners(null, [{
-        oldValue: oldValue,
-        newValue: newValue
-      }])
-    }
-
-    if (cb) {
-      cb();
-    }
-  },
-
-  get: function(k, cb) {
-    var keys;
-    if (k.constructor == Object)
-      keys = k;
-    else if (k.constructor == String)
-      keys = [k];
-    else if (k.constructor == Array)
-      keys = k;
-
-    var ret = {};
-    for (var i in keys) {
-      i = keys[i];
-      ret[i] = JSON.parse(localStorage.getItem(i));
-    }
-
-    cb(ret);
-  }
-};
+chrome.storage = require('./chrome-storage');
 
 function throttleTimeout(token, item, throttle, cb) {
   if (!token)
@@ -243,81 +160,6 @@ function throttleTimeout(token, item, throttle, cb) {
   return token;
 }
 
-const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');
-chrome.app.window.create = function(options, cb) {
-  var id = options.id;
-  if (id == null)
-    console.error('no id?')
-  var w = windows[id];
-  if (w) {
-    cb(w, true);
-    return;
-  }
-
-  var windowSettings = loadWindowSettings(id);
-  var contentBounds = windowSettings.contentBounds || {};
-  var frameless = options.frame && options.frame.type == 'none';
-  var options = options.innerBounds || {};
-
-  var opts = {
-    show: false,
-    frame: !frameless,
-  };
-  var copyProps = ['x', 'y', 'width', 'height', 'minWidth', 'minHeight'];
-  for (var i in copyProps) {
-    i = copyProps[i];
-    opts[i] = contentBounds[i] || options[i];
-  }
-
-  console.log('creating window', id);
-  opts.useContentSize = true;
-  opts.webPreferences = {
-    plugins: true,
-    preload: preloadPath,
-  }
-
-  w = new BrowserWindow(opts);
-
-  preventBrowserWindow(w);
-
-  // need this cached because it becomes unaccessible after close
-  var nativeId = w.id;
-  windows[id] = w;
-  windowMappings.electronToChrome[w.id] = id;
-  windowMappings.chromeToElectron[id] = nativeId;
-  updateWindowMappings();
-  createWindowGlobals(nativeId);
-
-  safeRegister(selfWindow, w, function() {
-    console.log('window closed', id);
-    if (windows[id] == w) {
-      delete windowMappings.electronToChrome[nativeId];
-      delete windowMappings.chromeToElectron[id];
-      delete windows[id];
-      deleteWindowGlobals(nativeId);
-      updateWindowMappings();
-    }
-  }, 'close')
-
-  var saveThrottle;
-  function save() {
-    saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
-      var data = {
-        contentBounds: w.getContentBounds(),
-        isDevToolsOpened: w.webContents.isDevToolsOpened()
-      }
-      localStorage.setItem('window-settings-' + id, JSON.stringify(data));
-    })
-  };
-
-  safeRegister(selfWindow, w, save, 'resize');
-  safeRegister(selfWindow, w, save, 'move');
-  safeRegister(selfWindow, w, save, 'devtools-opened');
-  safeRegister(selfWindow, w, save, 'devtools-closed');
-
-  cb(w, false, windowSettings);
-}
-
 function createBackground() {
   chrome.app.window.create({
     id: '__background',
@@ -325,7 +167,7 @@ function createBackground() {
       width: 1000,
       height: 1000,
     }
-  }, function(bg) {
+  }, function(bg, created, windowSettings) {
     setWindowGlobal(bg.id, 'onload', function() {
       console.log('background onload')
       if (remote.getGlobal('wantsActivate'))
@@ -336,63 +178,18 @@ function createBackground() {
     var bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
     console.log(`opening ${bgUrl}`)
     bg.loadURL(bgUrl);
-    bg.webContents.openDevTools({mode: 'detach'})
+    if (windowSettings.isDevToolsOpened)
+      bg.webContents.openDevTools({mode: 'detach'});
+    // bg.webContents.openDevTools({mode: 'detach'})
     // bg.hide();
   })
 }
-
-function calculateId() {
-  if (appId) {
-    console.log(appId);
-    chrome.runtime.id = appId;
-    return Promise.resolve(appId);
-  }
-
-  return new Promise((resolve, reject) => {
-    var key = manifest.key;
-    var buffer = Buffer.from(key, 'base64');
-    const crypto = require('crypto');
-    var hash = crypto.createHash('sha256');
-
-    hash.on('readable', () => {
-      var data = hash.read();
-      if (!data) {
-        reject(new Error('no data from hash'));
-        return;
-      }
-
-      function translate(c) {
-        if (c >= '0' && c <= '9')
-          return String.fromCharCode('a'.charCodeAt(0) + (c - '0'))
-        return String.fromCharCode(c.charCodeAt(0) + 10)
-      }
-
-      data = data.toString('hex').substring(0, 32);
-      var id = data.split('').map(m => translate(m)).join('');
-      console.log('chrome app id', id);
-      chrome.runtime.id = id;
-      resolve(id);
-
-    });
-    hash.write(buffer);
-    hash.end()
-  });
-}
-
-var notificationWorker;
-function registerChromeNotificationWorker() {
-  return navigator.serviceWorker.register('chrome-notification-worker.js')
-  .then(function(registration) {
-    notificationWorker = registration;
-  })
-}
-
 
 function maybeDownloadCrx() {
   if (manifest != null)
     return Promise.resolve();
 
-  return require('./chrome-update.js').downloadLatestVersion(appId)
+  return chromeAppUpdater.downloadLatestVersion(appId)
   .then(() => {
     // reloading!
     // https://www.youtube.com/watch?v=VEjIJz077k0
@@ -404,15 +201,12 @@ function maybeDownloadCrx() {
 
 Promise.all([
   maybeDownloadCrx(),
-  calculateId(),
   identity.startAuthServer(),
-  // registerChromeNotificationWorker(),
   // registerProtocol(),
 ])
 .then(function() {
   console.log('initialized');
   setGlobal('chrome', chrome);
-  // console.log(chrome);
   createBackground();
 })
 
