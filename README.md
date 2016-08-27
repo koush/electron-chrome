@@ -14,8 +14,10 @@ This will also download updates as they become available.
 electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm
 ```
 
-A lot of stuff is implemented. Enough to run Vysor:
+A lot of stuff is implemented. Enough to run Vysor (as shown in example above):
 https://chrome.google.com/webstore/detail/vysor/gidgenkbbabolejbgbpnhbimgjbffefm
+
+
 
 Goals:
 Chrome apps are being phased out on all platforms but ChromeOS.
