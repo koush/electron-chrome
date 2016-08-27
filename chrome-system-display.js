@@ -19,8 +19,6 @@ function getInfo(cb) {
     }
   })
 
-  console.log(ret);
-
   cb(ret);
 }
 

@@ -315,6 +315,8 @@ var preventBrowserWindow = remote.getGlobal('preventBrowserWindow');
 
 chrome.app.window.create = function(options, cb) {
   var id = options.id;
+  if (id == null)
+    console.error('no id?')
   var w = windows[id];
   if (w) {
     cb(w, true);
@@ -373,7 +375,7 @@ chrome.app.window.create = function(options, cb) {
         contentBounds: w.getContentBounds(),
         isDevToolsOpened: w.webContents.isDevToolsOpened()
       }
-      localStorage.setItem('window-settings-' + w.id, JSON.stringify(data));
+      localStorage.setItem('window-settings-' + id, JSON.stringify(data));
     })
   };
 
@@ -382,6 +384,7 @@ chrome.app.window.create = function(options, cb) {
   safeRegister(selfWindow, w, save, 'devtools-opened');
   safeRegister(selfWindow, w, save, 'devtools-closed');
 
+  console.log(windowSettings);
   cb(w, false, windowSettings);
 }
 
@@ -464,8 +467,10 @@ function maybeDownloadCrx() {
 
   return require('./chrome-update.js').downloadLatestVersion(appId)
   .then(() => {
-    // reload
+    // reloading!
     // https://www.youtube.com/watch?v=VEjIJz077k0
+    app.relaunch();
+    app.exit(0);
   })
 }
 

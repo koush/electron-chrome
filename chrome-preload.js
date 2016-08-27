@@ -220,6 +220,10 @@
   chrome.identity.getProfileUserInfo = wrap0Arg(chrome.identity.getProfileUserInfo);
   chrome.identity.getAuthToken = wrap1Arg(chrome.identity.getAuthToken);
   chrome.identity.launchWebAuthFlow = wrap1Arg(chrome.identity.launchWebAuthFlow);
+  chrome.identity.getRedirectURL = function(path) {
+    path = path || '';
+    return `http://localhost:${chrome.identity.authServerPort}/${path}`
+  }
 
   var chromeNotificationsCreate = chrome.notifications.create;
   chrome.notifications.create = function() {
@@ -307,14 +311,14 @@
       // load happens after callback to allow contentWindow stuff to be set.
       // var appDir = remote.getGlobal('chromeAppDir');
       // w.loadURL(`file://${appDir}/${page}`)
-      w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
-      // this needs to happen only after the load.
-      if (settings.isDevToolsOpened)
-        selfWindow.w.webContents.openDevTools({mode: 'detach'});
       w.once('ready-to-show', () => {
         w.show()
       })
-      // w.webContents.openDevTools({mode: 'detach'})
+      w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
+      // this needs to happen only after the load.
+      console.log(settings);
+      if (settings.isDevToolsOpened)
+        w.webContents.openDevTools({mode: 'detach'});
     });
   }
 

@@ -63,17 +63,16 @@ function downloadCrx(id, crxInfo) {
       })
       .then(ab => {
         // save to tmp, then rename to prevent partial writes.
-        return new Promise((resolve, reject) => {
-          var crxTmpPath = crxPath + '.tmp';
-          console.log(`writing crx to ${crxPath}`)
-          fs.writeFile(crxTmpPath, Buffer.from(ab), function(e) {
-            if (e)
-              reject('unable to save crx file');
-            else {
-              fs.renameSync(crxTmpPath, crxPath);
-              resolve(crxPath);
-            }
-          })
+        var crxTmpPath = crxPath + '.tmp';
+        console.log(`writing crx to ${crxPath}`)
+        fs.writeFile(crxTmpPath, Buffer.from(ab), function(e) {
+          console.log('done writing');
+          if (e)
+            reject('unable to save crx file');
+          else {
+            fs.renameSync(crxTmpPath, crxPath);
+            resolve(crxPath);
+          }
         })
       })
     }

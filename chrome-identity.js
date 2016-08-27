@@ -29,7 +29,6 @@ function startAuthServer() {
         console.error('unexpected error during auth request', e);
       }
     })
-
   });
 }
 
