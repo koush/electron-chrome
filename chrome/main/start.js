@@ -152,6 +152,10 @@ var appId;
 
 global.chromeRuntimeWindow = null;
 function makeRuntimeWindow() {
+  if (false) {
+    return require(path.join('..', 'api', 'chrome-runtime.js'))
+  }
+
   if (chromeRuntimeWindow) {
     console.error('runtime already exists');
     return;
@@ -234,7 +238,6 @@ app.on('window-all-closed', () => {
     var args = process.argv.slice(1).filter(s => s != '--silent')
     if (!wantsActivate)
       args.push('--silent');
-    console.log(args);
     app.relaunch({
       args: args
     });

@@ -48,6 +48,8 @@ function getWindowGlobals(id) {
 
 // safely handling events (window close race conditions)
 function autoUnregister(w, e, f, name) {
+  if (!w)
+    return;
   w.on('close', () => {
     if (name)
       e.removeListener(name, f);

@@ -1,12 +1,41 @@
 const path = require('path');
-const {remote, shell} = require('electron');
-const {BrowserWindow, app, protocol} = remote;
+const electron = require('electron').remote || require('electron');
+const {shell} = require('electron');
+const {BrowserWindow, app, protocol} = electron;
 const fs = require('fs');
 const os = require('os');
 
-var manifest = remote.getGlobal('chromeManifest');
-var appId = remote.getGlobal('chromeAppId');
+const remote = require('electron').remote || {
+  getGlobal: function(key) {
+    return global[key];
+  },
+  getCurrentWindow: function() {
+  }
+}
 
+const manifest = remote.getGlobal('chromeManifest');
+const appId = remote.getGlobal('chromeAppId');
+
+
+if (!global.localStorage) {
+  try {
+    var dataPath = path.join(app.getPath('userData'), `${appId}.json`);
+    var localStorageData = JSON.parse(fs.readFileSync(dataPath));
+  }
+  catch (e) {
+    localStorageData = {};
+  }
+
+  global.localStorage = {
+    getItem: function(key) {
+      return localStorageData[key] || null;
+    },
+    setItem: function(key, value) {
+      localStorageData[key] = value;
+      fs.writeFileSync(dataPath, JSON.stringify(localStorageData))
+    }
+  }
+}
 console.log('chrome runtime started');
 
 const {
@@ -22,9 +51,10 @@ const {
 } = require('../main/global.js');
 
 
-var selfWindow = remote.getCurrentWindow();
+const selfWindow = remote.getCurrentWindow();
 // need to watch for a lot of close events...
-selfWindow.setMaxListeners(1000);
+if (selfWindow)
+  selfWindow.setMaxListeners(1000);
 
 const windowMappings = {
   chromeToElectron: {},
@@ -285,7 +315,6 @@ chrome.app.window.create = function(options, cb) {
   safeRegister(selfWindow, w, save, 'devtools-opened');
   safeRegister(selfWindow, w, save, 'devtools-closed');
 
-  console.log(windowSettings);
   cb(w, false, windowSettings);
 }
 
@@ -302,9 +331,6 @@ function createBackground() {
       if (remote.getGlobal('wantsActivate'))
         app.emit('activate');
     })
-    function hideBg() {
-      bg.hide();
-    }
     safeRegister(selfWindow, bg, bg.hide.bind(bg), 'show');
     // bg.loadURL(`file://${appDir}/electron-background.html`)
     var bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
@@ -386,6 +412,8 @@ Promise.all([
 .then(function() {
   console.log('initialized');
   setGlobal('chrome', chrome);
-  console.log(chrome);
+  // console.log(chrome);
   createBackground();
 })
+
+console.log('runtime created');

@@ -1,3 +1,13 @@
+const remote = require('electron').remote || {
+  getGlobal: function(key) {
+    return global[key];
+  },
+  getCurrentWindow: function() {
+  }
+}
+
+const manifest = remote.getGlobal('chromeManifest');
+
 var authServer = new require('http').Server();
 var authCallbacks = {};
 function startAuthServer() {

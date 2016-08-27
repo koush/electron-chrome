@@ -3,6 +3,13 @@ const notifier = require('./electron-notifications')
 var openNotifications = {};
 
 var notifications = exports;
+const remote = require('electron').remote || {
+  getGlobal: function(key) {
+    return global[key];
+  },
+  getCurrentWindow: function() {
+  }
+}
 
 var selfWindow = remote.getCurrentWindow();
 const safeRegister = remote.getGlobal('safeRegister');
