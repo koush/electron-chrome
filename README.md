@@ -31,7 +31,7 @@ Main thing that is missing is chrome.fileSystem. That's an easy fix once this bu
 
 https://github.com/electron/electron/issues/6949
 
-*Mostly implemented:*
+##### Mostly implemented:
 
 chrome.identity
 
@@ -43,10 +43,10 @@ chrome.notifications
 
 chrome.app.window
 
-*Want to implement:*
+##### Want to implement:
 
 chrome.usb
 
-Not implemented (and no plans to implement):
+##### Not implemented (and no plans to implement):
 
 chrome.socket: This Chrome API is kinda crap. I ended up wrapping it with my own, and then wrapped node.js Socket as well.
