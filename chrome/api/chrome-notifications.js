@@ -7,13 +7,7 @@ const notifier = require('./electron-notifications')
 var openNotifications = {};
 
 var notifications = exports;
-const remote = require('electron').remote || {
-  getGlobal: function(key) {
-    return global[key];
-  },
-  getCurrentWindow: function() {
-  }
-}
+const {electron, remote} = require('./electron-remote.js')
 
 var selfWindow = remote.getCurrentWindow();
 const safeRegister = remote.getGlobal('safeRegister');
@@ -32,19 +26,20 @@ notifications.create = function(nid, opts, cb) {
 
 
   safeRegister(selfWindow, n, function() {
-    chrome.notifications.onClosed.invokeListeners(null, [nid]);
+    notifications.onClosed.invokeListeners(null, [nid]);
     delete openNotifications[n];
   }, 'close')
 
   safeRegister(selfWindow, n, function() {
-    chrome.notifications.onClicked.invokeListeners(null, [nid])
+    notifications.onClicked.invokeListeners(null, [nid])
   }, 'clicked')
 
   safeRegister(selfWindow, n, function(text, buttonIndex) {
-    chrome.notifications.onButtonClicked.invokeListeners(null, [nid, buttonIndex]);
+    notifications.onButtonClicked.invokeListeners(null, [nid, buttonIndex]);
   }, 'buttonClicked')
 
-  cb(nid);
+  if (cb)
+    cb(nid);
 }
 
 notifications.clear = function(nid, cb) {

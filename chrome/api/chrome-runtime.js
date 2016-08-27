@@ -1,22 +1,15 @@
 const path = require('path');
-const electron = require('electron').remote || require('electron');
+const {electron, remote} = require('./electron-remote.js')
 const {shell} = require('electron');
 const {BrowserWindow, app, protocol} = electron;
 const fs = require('fs');
 const os = require('os');
 
-const remote = require('electron').remote || {
-  getGlobal: function(key) {
-    return global[key];
-  },
-  getCurrentWindow: function() {
-  }
-}
-
 const manifest = remote.getGlobal('chromeManifest');
 const appId = remote.getGlobal('chromeAppId');
 
 if (!global.localStorage) {
+  // chrome.storage and windows are backed by localStorage.
   try {
     var dataPath = path.join(app.getPath('userData'), `${appId}.json`);
     var localStorageData = JSON.parse(fs.readFileSync(dataPath));
@@ -55,8 +48,7 @@ const selfWindow = remote.getCurrentWindow();
 if (selfWindow)
   selfWindow.setMaxListeners(1000);
 
-
-global.chrome = {};
+var chrome = {};
 
 var hostMap = {
   "darwin": "mac",
@@ -146,19 +138,7 @@ chrome.system = require('./chrome-system.js');
 chrome.notifications = require('./chrome-notifications.js');
 chrome.storage = require('./chrome-storage');
 
-function throttleTimeout(token, item, throttle, cb) {
-  if (!token)
-    token = { items:[] };
-  token.items.push(item);
-  if (!token.timeout) {
-    token.timeout = setTimeout(function() {
-      delete token.timeout;
-      cb(token.items);
-      token.items = [];
-    }, throttle);
-  }
-  return token;
-}
+const {throttleTimeout} = require('./util.js');
 
 function createBackground() {
   chrome.app.window.create({
@@ -198,8 +178,7 @@ function maybeDownloadCrx() {
   })
 }
 
-
-Promise.all([
+const init = Promise.all([
   maybeDownloadCrx(),
   identity.startAuthServer(),
   // registerProtocol(),
@@ -210,4 +189,13 @@ Promise.all([
   createBackground();
 })
 
-console.log('runtime created');
+exports.createAPI = function() {
+  return new Promise((resolve, reject) => {
+    init.then(() => {
+      resolve(chrome);
+    })
+    .catch(function(e) {
+      reject(e);
+    });
+  });
+}

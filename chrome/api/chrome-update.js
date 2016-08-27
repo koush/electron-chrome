@@ -14,7 +14,7 @@ function getCrxDir(id) {
 function getLatestVersion(id) {
   return new Promise((resolve, reject) => {
     var updateParams = {
-      id: appId,
+      id: id,
       installsource: 'ondemand',
       uc: '',
     }

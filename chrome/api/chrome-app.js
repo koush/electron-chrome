@@ -1,11 +1,18 @@
-const electron = require('electron').remote || require('electron');
+const path = require('path');
+const {electron, remote} = require('./electron-remote.js')
 const {BrowserWindow, app, protocol} = electron;
+const {throttleTimeout} = require('./util.js');
 const {
   makeEvent,
+  safeRegister,
+  preventBrowserWindow,
+  setGlobal,
+  createWindowGlobals,
+  deleteWindowGlobals,
 } = require('../main/global.js');
 
-exports.window = {};
-exports.runtime = {};
+const window = exports.window = {};
+const runtime = exports.runtime = {};
 
 exports.runtime.onLaunched = makeEvent();
 
@@ -23,8 +30,13 @@ function updateWindowMappings() {
 
 const windows = {};
 const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');
+
+// will be overwritten by preload script, as rpc can't do return values
+exports.window.get = function(id) {
+  return windows[id];
+}
+
 exports.window.create = function(options, cb) {
-  console.log(arguments);
   var id = options.id;
   if (id == null)
     console.error('no id?')
@@ -98,8 +110,9 @@ exports.window.create = function(options, cb) {
   cb(w, false, windowSettings);
 }
 
+const selfWindow = remote.getCurrentWindow();
 safeRegister(selfWindow, app, function() {
-  chrome.app.runtime.onLaunched.invokeListeners(null, [{
+  runtime.onLaunched.invokeListeners(null, [{
     isKioskSession: false,
     isPublicSession: false,
     source: "command_line"

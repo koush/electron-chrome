@@ -1,4 +1,8 @@
-storage = exports;
+var storage = exports;
+
+const {
+  makeEvent,
+} = require('../main/global.js');
 
 storage.onChanged = makeEvent();
 
