@@ -1,7 +1,6 @@
 const path = require('path');
 const {remote, shell} = require('electron');
 const {BrowserWindow, app, protocol} = remote;
-var {makeEvent} = require('./chrome-event.js');
 const fs = require('fs');
 const os = require('os');
 
@@ -10,85 +9,33 @@ var appId = remote.getGlobal('chromeAppId');
 
 console.log('chrome runtime started');
 
-remote.getGlobal('eval')('global.setGlobal = function(n, v) { global[n] = v }');
+const {
+  makeEvent,
+  setGlobal,
+  safeRegister,
+  preventBrowserWindow,
+  createWindowGlobals,
+  setWindowGlobal,
+  deleteWindowGlobals,
+  getWindowGlobal,
+  getWindowGlobals,
+} = require('../main/global.js');
 
-var setGlobal = remote.getGlobal('setGlobal');
-function evalFunc(f) {
-  remote.getGlobal('eval')(f.toString())
-}
-
-evalFunc(makeEvent);
-makeEvent = remote.getGlobal('makeEvent');
 
 var selfWindow = remote.getCurrentWindow();
 // need to watch for a lot of close events...
 selfWindow.setMaxListeners(1000);
 
-var windows = {};
-var windowMappings = {
+const windowMappings = {
   chromeToElectron: {},
   electronToChrome: {},
 };
-var backgroundPage;
-
 function updateWindowMappings() {
   setGlobal('windowMappings', windowMappings);
 }
 
-(function() {
-  remote.getGlobal('eval')('global.windowGlobals = {}');
+var windows = {};
 
-  function setWindowGlobal(id, k, v) {
-    var w = windowGlobals[id];
-    if (!w) {
-      console.error('windowGlobals not found', id);
-      return;
-    }
-
-    w[k] = v;
-  }
-
-  function createWindowGlobals(id) {
-    if (windowGlobals[id]) {
-      console.error('windowGlobals', id, 'already exists');
-      return;
-    }
-    windowGlobals[id] = {};
-  }
-
-  function deleteWindowGlobals(id) {
-    delete windowGlobals[id];
-  }
-
-  function getWindowGlobal(id, k) {
-    var w = windowGlobals[id];
-    if (!w) {
-      console.error('windowGlobals not found', id);
-      return;
-    }
-    return w[k];
-  }
-
-  function getWindowGlobals(id) {
-    var w = windowGlobals[id];
-    if (!w) {
-      console.error('windowGlobals not found', id);
-      return;
-    }
-    return w;
-  }
-
-  evalFunc(createWindowGlobals);
-  evalFunc(deleteWindowGlobals);
-  evalFunc(setWindowGlobal);
-  evalFunc(getWindowGlobal);
-  evalFunc(getWindowGlobals);
-})();
-
-var getWindowGlobal = remote.getGlobal('getWindowGlobal');
-var createWindowGlobals = remote.getGlobal('createWindowGlobals');
-var deleteWindowGlobals = remote.getGlobal('deleteWindowGlobals');
-var setWindowGlobal = remote.getGlobal('setWindowGlobal');
 
 global.chrome = {
   app: {
@@ -154,44 +101,6 @@ function loadWindowSettings(id) {
   return JSON.parse(localStorage.getItem('window-settings-' + id)) || {};
 }
 
-(function() {
-  function autoUnregister(w, e, f, name) {
-    w.on('close', () => {
-      if (name)
-        e.removeListener(name, f);
-      else
-        e.removeListener(f);
-    })
-  }
-
-  function safeRegister(w, e, f, name) {
-    autoUnregister(w, e, f, name);
-    if (name)
-      e.on(name, f);
-    else
-      e.addListener(f);
-  }
-
-  function safeCallback(w, f) {
-    var safe = true;
-    w.on('close', function() {
-      safe = false;
-    })
-
-    return function() {
-      if (safe)
-        f.apply.apply(f, arguments);
-    };
-  }
-
-  evalFunc(autoUnregister);
-  evalFunc(safeRegister)
-  evalFunc(safeCallback)
-})();
-
-const autoUnregister = remote.getGlobal('autoUnregister');
-const safeRegister = remote.getGlobal('safeRegister');
-const safeCallback = remote.getGlobal('safeCallback');
 
 safeRegister(selfWindow, app, function() {
   chrome.app.runtime.onLaunched.invokeListeners(null, [{
@@ -304,15 +213,7 @@ function throttleTimeout(token, item, throttle, cb) {
   return token;
 }
 
-evalFunc(function preventBrowserWindow(w) {
-  w.webContents.on('new-window', function(e, url) {
-    e.preventDefault();
-    shell.openExternal(url);
-  })
-})
-
-var preventBrowserWindow = remote.getGlobal('preventBrowserWindow');
-
+const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');
 chrome.app.window.create = function(options, cb) {
   var id = options.id;
   if (id == null)
@@ -342,7 +243,7 @@ chrome.app.window.create = function(options, cb) {
   opts.useContentSize = true;
   opts.webPreferences = {
     plugins: true,
-    preload: `${__dirname}/chrome-preload.js`,
+    preload: preloadPath,
   }
 
   w = new BrowserWindow(opts);

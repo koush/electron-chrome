@@ -1,4 +1,4 @@
-exports.makeEvent = function makeEvent() {
+exports.makeEvent = function() {
   var listeners = [];
   return {
     addListener: function(l) {
@@ -15,15 +15,5 @@ exports.makeEvent = function makeEvent() {
         l.apply(t, args);
       }
     }
-  }
-}
-
-exports.safeWrapEvent = function safeWrapEvent(w, e) {
-  var addListener = e.addListener;
-
-  var autoUnregister = require('electron').remote.getGlobal('autoUnregister');
-  e.addListener = function(f) {
-    autoUnregister(w, e, f);
-    addListener(f);
   }
 }
