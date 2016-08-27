@@ -276,7 +276,7 @@
       else
         selfBrowserWindow.webContents.openDevTools({mode: 'detach'})
     }}))
-    menu.append(new MenuItem({label: 'Inspect Background Page', click() { chrome.app.window.get('background').w.webContents.openDevTools({mode: 'detach'}) }}))
+    menu.append(new MenuItem({label: 'Inspect Background Page', click() { chrome.app.window.get('__background').w.webContents.openDevTools({mode: 'detach'}) }}))
 
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault()
@@ -352,7 +352,7 @@
     var windowMappings = remote.getGlobal('windowMappings');
     return BrowserWindow.getAllWindows()
     .map(b => windowMappings.electronToChrome[b.id])
-    .filter(id => id != null && id != 'background')
+    .filter(id => id != null && id != '__background')
     .map(id => chrome.app.window.get(id));
   }
 
@@ -365,6 +365,14 @@
   chrome.runtime.getManifest = function() {
     return JSON.parse(chromeManifest);
   };
+  chrome.runtime.getBackgroundPage = function(cb) {
+    if (cb) {
+      process.nextTick(function() {
+        cb(chrome.app.window.get('__background').contentWindow);
+      })
+    }
+  }
+
 
   window.chrome = chrome;
   window.require = require;

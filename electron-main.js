@@ -42,7 +42,7 @@ var appId;
     }
   }
   else if (appDir) {
-    appDir = path.join(__dirname, appDir);
+    // appDir = path.join(__dirname, appDir);
     console.log(`starting chrome app at ${appDir}`);
 
     var manifestPath = path.join(appDir, 'manifest.json');

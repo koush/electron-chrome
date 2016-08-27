@@ -390,7 +390,7 @@ chrome.app.window.create = function(options, cb) {
 
 function createBackground() {
   chrome.app.window.create({
-    id: 'background',
+    id: '__background',
     innerBounds: {
       width: 1000,
       height: 1000,

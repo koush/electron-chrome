@@ -70,6 +70,7 @@ function downloadCrx(id, crxInfo) {
           if (e)
             reject('unable to save crx file');
           else {
+            deleteRecursive(crxPath);
             fs.renameSync(crxTmpPath, crxPath);
             resolve(crxPath);
           }
@@ -86,15 +87,19 @@ function downloadLatestVersion(id) {
   });
 }
 
-var deleteFolderRecursive = function(inPath) {
-  if( fs.existsSync(inPath) ) {
-    fs.readdirSync(inPath).forEach(function(file,index){
-      var curPath = inPath + "/" + file;
-      if(fs.lstatSync(curPath).isDirectory()) { // recurse
-        deleteFolderRecursive(curPath);
-      } else { // delete file
-        fs.unlinkSync(curPath);
-      }
+var deleteRecursive = function(inPath) {
+  if (!fs.existsSync(inPath))
+    return;
+
+  if (!fs.lstatSync(inPath).isDirectory()) {
+    fs.unlinkSync(inPath);
+    return;
+  }
+
+  if (fs.existsSync(inPath)) {
+    fs.readdirSync(inPath).forEach(function(file,index) {
+      var curPath = path.join(inPath, file);
+      deleteRecursive(curPath);
     });
     fs.rmdirSync(inPath);
   }
@@ -122,8 +127,8 @@ function extractCrx(crxPath) {
   var zip = new AdmZip(b);
 
   var tmp = unpackedPath + '.tmp';
-  deleteFolderRecursive(unpackedPath);
-  deleteFolderRecursive(tmp);
+  deleteRecursive(unpackedPath);
+  deleteRecursive(tmp);
   zip.extractAllTo(tmp, true);
   fs.renameSync(tmp, unpackedPath);
 
