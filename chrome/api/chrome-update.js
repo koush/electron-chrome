@@ -3,7 +3,7 @@ const electron = require('electron').remote || require('electron');
 const {app} = electron;
 const path = require('path');
 const fs = require('fs');
-const jq = require('./jquery-2.1.1.min.js')
+const jq = require('../common/jquery-2.1.1.min.js')
 const mkdirp = require('mkdirp')
 const AdmZip = require('adm-zip');
 
