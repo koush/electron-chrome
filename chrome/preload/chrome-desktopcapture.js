@@ -1,3 +1,12 @@
+const remote =  require('electron').remote;
+const {BrowserWindow} = remote;
+
+const {
+  safeRegister,
+} = require('../main/global.js');
+
+const selfBrowserWindow = remote.getCurrentWindow();
+
 function chooseDesktopMedia(types, cb) {
   var chooser = new BrowserWindow({
     title: 'Share Your Screen',

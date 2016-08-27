@@ -24,6 +24,7 @@ function updateWindowMappings() {
 const windows = {};
 const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');
 exports.window.create = function(options, cb) {
+  console.log(arguments);
   var id = options.id;
   if (id == null)
     console.error('no id?')
