@@ -34,10 +34,9 @@ var appDir;
 
   if (global.chromeAppId) {
     try {
-      var result = require('./chrome/chrome-update.js').unpackLatestInstalledCrx(appId);
+      var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
       global.chromeManifest = result.manifest;
       appDir = result.path;
-      global.chromeManifest = manifest;
     }
     catch (e) {
       console.error(e);
