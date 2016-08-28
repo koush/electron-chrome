@@ -5,8 +5,15 @@ const {BrowserWindow, app, protocol} = electron;
 const fs = require('fs');
 const os = require('os');
 
+const electronChromeRoot = remote.getGlobal('electronChromeRoot');
+require('module').globalPaths.push(path.join(electronChromeRoot), 'node_modules');
+
+const {throttleTimeout} = require('./util.js');
+
 const manifest = remote.getGlobal('chromeManifest');
 const appId = remote.getGlobal('chromeAppId');
+const chromeRuntimeId = remote.getGlobal('chromeRuntimeId');
+const chromeRuntimeVersion = remote.getGlobal('chromeRuntimeVersion');
 
 if (!global.localStorage) {
   // chrome.storage and windows are backed by localStorage.
@@ -66,23 +73,44 @@ var archMap = {
 
 const chromeAppUpdater = require('./chrome-update.js');
 
+function ensureLatestCrx(appId, currentVersion) {
+  return new Promise((resolve, reject) => {
+    chromeAppUpdater.getLatestVersion(appId)
+    .then(latest => {
+      console.log('latest version of', appId, latest.version, 'vs current', currentVersion);
+      if (latest.version <= currentVersion) {
+        resolve();
+        return;
+      }
+
+      chromeAppUpdater.downloadCrx(appId, latest)
+      .then((crxPath) => {
+        return chromeAppUpdater.extractCrx(crxPath);
+      })
+      .then(function() {
+        resolve(latest.version);
+      })
+    })
+  })
+}
+
+var updatePromise;
+
 chrome.runtime = {
   id: appId,
   onMessage: makeEvent(),
   onMessageExternal: makeEvent(),
   sendMessage: function() {
-    console.log('dropping message on the floor', arguments);
+    console.error('dropping message on the floor', arguments);
   },
   // directory: appDir,
   manifest: manifest,
   onUpdateAvailable: makeEvent(),
   requestUpdateCheck: function(cb) {
     cb = cb || function() {};
-    // status, details
-    chromeAppUpdater.getLatestVersion(appId)
-    .then(latest => {
-      console.log('latest version', latest);
-      if (latest.version <= manifest.version) {
+
+    updatePromise.then(function(version) {
+      if (!version) {
         cb('no_update', {
           version: '',
         });
@@ -90,14 +118,11 @@ chrome.runtime = {
       }
 
       const details = {
-        version: latest.version,
+        version: version,
       };
 
-      chromeAppUpdater.downloadCrx(appId, latest)
-      .then(function() {
-        chrome.runtime.onUpdateAvailable.invokeListeners(null, [details])
-        cb('update_available', details);
-      })
+      chrome.runtime.onUpdateAvailable.invokeListeners(null, [details])
+      cb('update_available', details);
     })
   },
   reload: function() {
@@ -143,12 +168,43 @@ chrome.system = require('./chrome-system.js');
 chrome.notifications = require('./chrome-notifications.js');
 chrome.storage = require('./chrome-storage');
 
-const {throttleTimeout} = require('./util.js');
+function updateChecker() {
+  var latest;
+  var promise;
+  if (chromeRuntimeId) {
+    console.log('checking for updates to chrome runtime', chromeRuntimeId);
+    promise = ensureLatestCrx(chromeRuntimeId, chromeRuntimeVersion)
+    .then(function(version) {
+      // if we have an update for the runtime, just pass the existing version
+      if (version) {
+        console.log('found update for chrome runtime', version);
+        latest = manifest.version;
+      }
+      return ensureLatestCrx(appId, manifest.version);
+    })
+  }
+  else {
+    console.log('checking for updates to chrome app', appId);
+    promise = ensureLatestCrx(appId, manifest.version);
+  }
 
+  updatePromise = promise.then(function(version) {
+    // an actual aop update
+    if (version) {
+      console.log('found update for chrome app', version);
+      latest = version;
+    }
+
+    return latest;
+  })
+}
+
+var updateCheckerId;
 function startUpdateChecker() {
-  chrome.runtime.requestUpdateCheck();
+  clearInterval(updateCheckerId);
+  updateChecker();
   // do this every 30 minutes
-  setInterval(chrome.runtime.requestUpdateCheck, 30 * 60 * 1000);
+  updateCheckerId = setInterval(updateChecker, 30 * 60 * 1000);
 }
 
 function createBackground() {
@@ -183,8 +239,9 @@ function maybeDownloadCrx() {
   if (manifest != null)
     return Promise.resolve();
 
+  // download the crx, let the main entry point extract and spew any possible errors?
   return chromeAppUpdater.downloadLatestVersion(appId)
-  .then(() => {
+  .then(function() {
     // reloading!
     // https://www.youtube.com/watch?v=VEjIJz077k0
     app.relaunch();

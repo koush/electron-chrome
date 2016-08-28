@@ -27,7 +27,7 @@ var appDir;
     else if (arg.startsWith('--app-id=')) {
       // load an app from the chrome store, will download crx.
       global.chromeAppId = arg.substring('--app-id='.length);
-      console.log(global.chromeAppId);
+      console.log('chrome app id', global.chromeAppId);
       break;
     }
   }

@@ -1,0 +1,9 @@
+{
+  "app": {
+    "background": {
+    }
+  },
+  "manifest_version": 2,
+  "name": "Electron Chrome Runtime",
+  "version": "1.0.0.2"
+}

@@ -155,5 +155,6 @@ function unpackLatestInstalledCrx(id) {
 
 exports.getLatestVersion = getLatestVersion;
 exports.downloadCrx = downloadCrx;
+exports.extractCrx = extractCrx;
 exports.downloadLatestVersion = downloadLatestVersion;
 exports.unpackLatestInstalledCrx = unpackLatestInstalledCrx;
