@@ -3,6 +3,14 @@
 
 This is basically an incomplete polyfill on the Chrome APIs.
 
+Install:
+```
+git clone https://github.com/koush/electron-chrome.git
+cd electron-chrome
+npm install
+```
+
+Run:
 ```
 electron . --app-dir=/path/to/chrome-app/
 ```
