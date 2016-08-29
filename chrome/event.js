@@ -1,3 +1,4 @@
+// function callee "this" isn't persisted in electron IPC.
 exports.makeEvent = function() {
   var listeners = [];
   return {

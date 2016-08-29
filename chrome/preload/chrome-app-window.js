@@ -86,19 +86,16 @@ function AppWindow(w) {
 }
 
 function passthroughPrototype(n) {
+  // todo: liveness check?
   AppWindow.prototype[n] = function() {
     this.w[n].apply(this.w, arguments);
   }
 }
 
+// allow these AppWindow calls to go directly to the BrowserWindow
 var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized', 'focus'];
-for (var n in passthroughs) {
-  (function() {
-    var p = passthroughs[n];
-    AppWindow.prototype[p] = function() {
-      this.w[p].apply(this.w, arguments);
-    }
-  })();
+for (var p of passthroughs) {
+  passthroughPrototype(p);
 }
 
 function getAppWindowForNativeId(id) {

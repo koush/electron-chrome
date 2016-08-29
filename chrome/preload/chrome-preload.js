@@ -14,6 +14,8 @@ const {
   safeRegister,
 } = require(path.join(__dirname, '..', 'main', 'global.js'));
 
+const {Port} = require('./chrome-runtime-port.js');
+
 webFrame.registerURLSchemeAsSecure('chrome-extension')
 webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
 webFrame.registerURLSchemeAsPrivileged('chrome-extension')
@@ -190,6 +192,18 @@ chrome.runtime.getBackgroundPage = function(cb) {
       cb(chrome.app.window.get('__background').contentWindow);
     })
   }
+}
+chrome.runtime.connect = function() {
+  var extensionId;
+  var i = 0;
+  console.log('argumments', arguments);
+  if (i < arguments.length && typeof arguments[i] == 'string')
+    extensionId = arguments[i++];
+
+  // ignored for now
+  // if (i < arguments.length)
+  //   connectInfo = arguments[i++];
+  return new Port(extensionId)
 }
 
 

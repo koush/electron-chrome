@@ -251,7 +251,7 @@ function maybeDownloadCrx() {
 
 const init = Promise.all([
   maybeDownloadCrx(),
-  identity.startAuthServer(),
+  identity.startAuthServer(appId),
   // registerProtocol(),
 ])
 .then(function() {
