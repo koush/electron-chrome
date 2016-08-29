@@ -16,9 +16,9 @@
     // console.log('Query variable %s not found', variable);
   }
 
-  var code = getQueryVariable('code');
-  var port = getQueryVariable('port');
-  var path = getQueryVariable('path');
+  var state = getQueryVariable('state');
+  var port = state.split('/')[0];
+  var path = state.split('/')[1];
   var url = 'http://localhost:' + port + '/' + path + '?code=' + code;
   console.log(url);
   $.ajax({
