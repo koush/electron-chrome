@@ -19,7 +19,7 @@
   var state = getQueryVariable('state');
   var port = state.split('/')[0];
   var path = state.split('/')[1];
-  ode = getQueryVariable('code');
+  var code = getQueryVariable('code');
   var url = 'http://localhost:' + port + '/' + path + '?code=' + code;
   console.log(url);
   $.ajax({
