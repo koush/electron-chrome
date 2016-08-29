@@ -35,8 +35,13 @@ var appDir;
   if (global.chromeAppId) {
     try {
       var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
-      global.chromeManifest = result.manifest;
-      appDir = result.path;
+      if (result) {
+        global.chromeManifest = result.manifest;
+        appDir = result.path;
+      }
+      else {
+        console.log('app not installed, fetching...');
+      }
     }
     catch (e) {
       console.error(e);

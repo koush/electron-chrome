@@ -228,7 +228,7 @@ function createBackground() {
     var bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
     console.log(`opening ${bgUrl}`)
     bg.loadURL(bgUrl);
-    if (windowSettings.isDevToolsOpened)
+    // if (windowSettings.isDevToolsOpened)
       bg.webContents.openDevTools({mode: 'detach'});
     // bg.webContents.openDevTools({mode: 'detach'})
     // bg.hide();

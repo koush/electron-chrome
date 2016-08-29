@@ -106,6 +106,8 @@ var deleteRecursive = function(inPath) {
 };
 
 function extractCrx(crxPath) {
+  if (!crxPath)
+    return null;
   var unpackedPath = crxPath + '-unpacked';
   if (fs.existsSync(unpackedPath)) {
     return {
@@ -141,10 +143,14 @@ function extractCrx(crxPath) {
 
 function getLatestInstalledCrx(id) {
   var dir = getCrxDir(id);
-  return path.join(dir, fs.readdirSync(dir)
+  if (!fs.existsSync(dir))
+    return null;
+  var crxs = fs.readdirSync(dir)
   .filter(s => s.endsWith('.crx') && s.startsWith('app-'))
-  .sort()
-  .pop());
+  .sort();
+  if (!crxs.length)
+    return null;
+  return path.join(dir, crxs.pop());
 }
 
 function unpackLatestInstalledCrx(id) {

@@ -41,6 +41,8 @@ function useCurrent() {
 
     const {unpackLatestInstalledCrx} = require('./api/chrome-update.js');
     const unpackResult = unpackLatestInstalledCrx(global.chromeRuntimeId);
+    if (!unpackResult)
+      return useCurrent();
     if (unpackResult.manifest.version <= myManifestVersion)
       return useCurrent();
 
