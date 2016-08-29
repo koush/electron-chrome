@@ -22,12 +22,13 @@
   var code = getQueryVariable('code');
   var url = 'http://localhost:' + port + '/' + path + '?code=' + code;
   var link = $('<a>Click here to return to your application.</a>');
-  $('body').append(link);
+  $('#content').append(link);
   link.click(function() {
     window.location = url;
   });
   </script>
 </head>
 <body>
+  <div id='content'></div>
 </body>
 </html>
