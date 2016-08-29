@@ -1,0 +1,19 @@
+{
+  "name": "electron-notifications",
+  "version": "0.0.3",
+  "description": "A node module for sending notifications in electron applications",
+  "main": "index.js",
+  "keywords": [
+    "electron",
+    "notification",
+    "notification center",
+    "toaster",
+    "growl",
+    "notify-send",
+    "terminal-notifier",
+    "notify"
+  ],
+  "repository": "git@github.com:blainesch/electron-notifications.git",
+  "author": "Blaine Schmeisser",
+  "license": "MIT"
+}
