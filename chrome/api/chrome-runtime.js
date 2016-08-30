@@ -225,7 +225,11 @@ function createBackground() {
     })
     safeRegister(selfWindow, bg, bg.hide.bind(bg), 'show');
     // bg.loadURL(`file://${appDir}/electron-background.html`)
-    var bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
+    var bgUrl;
+    if (manifest.app.background.page)
+    bgUrl = `chrome-extension://${chrome.runtime.id}/${manifest.app.background.page}`;
+    else
+      bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
     console.log(`opening ${bgUrl}`)
     bg.loadURL(bgUrl);
     // if (windowSettings.isDevToolsOpened)

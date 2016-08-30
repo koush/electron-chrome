@@ -35,6 +35,8 @@ function getLatestVersion(id) {
       return res.text();
     })
     .then(text => {
+      console.log('server version');
+      console.log(text);
       var d = jq.parseXML(text);
       var updatecheck = jq(d).find('app>updatecheck')[0];
       resolve({
