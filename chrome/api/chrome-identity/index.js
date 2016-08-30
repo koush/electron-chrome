@@ -102,7 +102,7 @@ function maybeRefreshToken(key) {
 
   var params = {
       client_id: manifest.oauth2.client_id,
-      client_secret: manifest.oauth2.client_secret,
+      // client_secret: manifest.oauth2.client_secret,
       refresh_token: tokenInfo.refresh_token,
       grant_type: 'refresh_token',
   };
