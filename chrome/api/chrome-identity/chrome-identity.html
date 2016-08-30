@@ -1,0 +1,63 @@
+<html>
+<head>
+  <!-- <link rel="stylesheet" href="../common/bootstrap/css/bootstrap.min.css"> -->
+  <style>
+  body, input {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #333;
+    background-color: #fff;
+  }
+  input[type='text'] {
+    width: 400px;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .container-fluid {
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+  </style>
+  <script>
+    const {shell} = require('electron');
+    const querystring = require('querystring');
+    var qs = querystring.parse(window.location.search.replace('?', ''));
+    const url = qs.url;
+    const {electron, remote} = require('../electron-remote.js');
+    const chrome = remote.getGlobal('chrome');
+    const jq = require('../../common/jquery-2.1.1.min.js');
+    jq(document).ready(function() {
+      jq('#request').text(`${chrome.runtime.manifest.name}`)
+
+      jq('#signin').click(function(e) {
+        shell.openExternal(url);
+      });
+
+      jq('#submit').click(function() {
+        const self = remote.getCurrentWindow();
+        self.webContents.emit('code', jq('#code').val())
+        self.close();
+      })
+    })
+
+  </script>
+</head>
+<body>
+  <div class='container-fluid text-center'>
+    <div><span><b id='request'></b> wants to log in with your Google account.</span></div>
+    <div>This will open a new browser window.</div>
+    <div>After logging in, come back and enter the code returned by Google.</div>
+    <br/>
+    <div><a href='javascript:void(0);' id='signin'><img src='google-signin.png'></a></div>
+    <br/>
+    <h4>Enter Code:</h4>
+    <div><input id='code' class='text-center' type='text' placeholder='4/wGm-4CZifedatfIZJFBWFPXZW6II1NPN9D-1qutf2d0'></div>
+    <br/>
+    <div><input id='submit' type='submit' text='Submit'></div>
+  </div>
+</body>
+</html>

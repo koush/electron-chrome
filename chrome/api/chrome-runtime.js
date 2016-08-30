@@ -160,7 +160,7 @@ chrome.syncFileSystem = {
   }
 }
 
-const identity = require('./chrome-identity.js');
+const identity = require('./chrome-identity');
 chrome.identity = identity.identity;
 
 chrome.contextMenus = require('./chrome-contextmenus.js');

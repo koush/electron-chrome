@@ -1,38 +1,38 @@
-const remote = require('electron').remote || {
-  getGlobal: function(key) {
-    return global[key];
-  },
-  getCurrentWindow: function() {
-  }
-}
-
+const {electron, remote} = require('../electron-remote.js');
+const {BrowserWindow} = electron;
 const manifest = remote.getGlobal('chromeManifest');
+const {shell} = require('electron');
+const path = require('path');
+
+const {
+  safeRegister,
+} = require('../../main/global.js');
+
+var appId;
 
 var authServer = new require('http').Server();
-var authCallbacks = {};
-function startAuthServer() {
+var authCallback;
+function startAuthServer(chromeAppId) {
+  appId = chromeAppId;
   return new Promise((resolve, reject) => {
     authServer.on('error', function() {
       resolve();
     });
-    authServer.listen(function() {
+    authServer.listen(45613, function() {
       identity.authServerPort = authServer.address().port;
       resolve();
     })
     authServer.on('request', function(req, res) {
       try {
         var random = req.url.split('?')[0].split('/')[1];
-        cb = authCallbacks[random];
+        cb = authCallback;
         if (!cb) {
           res.writeHead(404);
           res.end('electron chrome auth server callback not found');
           return;
         }
-        delete authCallbacks[random];
-        res.writeHead(302, {
-          Location: 'https://vysor.io'
-        });
-        res.end('Logged into Vysor.')
+        authCallback = null;
+        res.end('<html><head><script>window.close();</script></head><body>Logged in.</body></html>')
         cb(req.url);
       }
       catch (e) {
@@ -55,30 +55,17 @@ function getQueryVariable(variable, url) {
   }
 }
 
-function launchFlowForCode(scopes, cb) {
-  return new Promise(function(resolve, reject) {
-    var escapedScopes = encodeURIComponent(scopes);
-    var url = `https://accounts.google.com/o/oauth2/v2/auth?scope=${escapedScopes}&response_type=code&client_id=${manifest.oauth2.electron_chrome_client_id}`;
-    chrome.identity.launchWebAuthFlow({
-      url: url,
-      interactive: true,
-    }, function(resultUrl) {
-      var pathOnly = resultUrl.split('/')[1].split('?')[0];
-      var redirect_uri = chrome.identity.getRedirectURL(pathOnly);
-      var code = getQueryVariable('code', new URL(`ignored://${resultUrl}`));
-      resolve(exchangeCodeForToken(code, redirect_uri));
-    });
-  });
-}
-
 function exchangeCodeForToken(code, redirect_uri) {
   var params = {
       code: code,
-      client_id: manifest.oauth2.electron_chrome_client_id,
-      client_secret: manifest.oauth2.electron_chrome_client_secret,
+      client_id: manifest.oauth2.client_id,
+      // client_secret: manifest.oauth2.client_secret,
       redirect_uri: redirect_uri,
       grant_type: 'authorization_code',
+      access_type: 'offline',
   };
+
+  params.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob';
 
   var str = Object.keys(params)
   .map(k => `${k}=` + encodeURIComponent(params[k]))
@@ -114,8 +101,8 @@ function maybeRefreshToken(key) {
     return Promise.resolve(tokenInfo);
 
   var params = {
-      client_id: manifest.oauth2.electron_chrome_client_id,
-      client_secret: manifest.oauth2.electron_chrome_client_secret,
+      client_id: manifest.oauth2.client_id,
+      client_secret: manifest.oauth2.client_secret,
       refresh_token: tokenInfo.refresh_token,
       grant_type: 'refresh_token',
   };
@@ -170,6 +157,7 @@ function getProfileUserInfo(token) {
   });
 }
 
+const uriOutOfBrowser = 'urn:ietf:wg:oauth:2.0:oob';
 var cachedProfileUserInfo;
 var identity = {
   getProfileUserInfo: function(cb) {
@@ -192,33 +180,56 @@ var identity = {
   },
   getRedirectURL: function(path) {
     path = path || '';
-    return `http://localhost:${chrome.identity.authServerPort}/${path}`
+    return `http://localhost:${chrome.identity.authServerPort}/${path}`;
+    // path = 'test';
+    // return `https://example.com/${path}`;
+    // return `http://localhost:${chrome.identity.authServerPort}/${path}`;
+    // return `https://koush.github.io/electron-chrome/auth?port=${chrome.identity.authServerPort}&path=${path}`;
+    // return `https://koush.github.io/electron-chrome/auth`;
   },
   launchWebAuthFlow: function(opts, cb) {
     var url = opts.url;
-    if (url.indexOf('?') == -1)
-      url += '?';
-    var random = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 8);
-    authCallbacks[random] = cb;
-    var redirect_uri = chrome.identity.getRedirectURL(random);
-    var escaped_uri = encodeURIComponent(redirect_uri);
-    var finalUrl = `${url}&redirect_uri=${escaped_uri}`;
-    // always interactive..
     var interactive = true || opts.interactive;
-    shell.openExternal(finalUrl);
+    if (!opts.oob) {
+      if (url.indexOf('?') == -1)
+        url += '?';
+      authCallback = cb;
+      // always interactive..
+      shell.openExternal(finalUrl);
+    }
+    else {
+      var opts = {
+        width: 640,
+        height: 400,
+        title: 'Google Login',
+        resizable: false,
+        alwaysOnTop: true,
+      };
+
+      const w = new BrowserWindow(opts);
+      var encodedUrl = encodeURIComponent(url);
+      w.loadURL(`file://${__dirname}/chrome-identity.html?url=${encodedUrl}`);
+      w.webContents.openDevTools({mode: 'detach'});
+      safeRegister(remote.getCurrentWindow(), w.webContents, function(code) {
+        cb(code);
+      }, 'code');
+    }
   },
   getAuthToken: function(opts, cb) {
-    if (!manifest.oauth2 || !manifest.oauth2.scopes || !manifest.oauth2.electron_chrome_client_id || !manifest.oauth2.electron_chrome_client_secret) {
-      cbError('oauth2 requires manifest to contain oauth2.scopes, oauth2.electron_chrome_client_id, and oauth2.electron_chrome_client_secret')
+    if (!manifest.oauth2 || !manifest.oauth2.scopes || !manifest.oauth2.client_id) {
+      cb('oauth2 requires manifest to contain oauth2.scopes, oauth2.client_id, and oauth2.client_secret')
       return;
     }
 
     opts.scopes = opts.scopes || manifest.oauth2.scopes.slice();
-
+    var scopes = [];
+    for (var scope of opts.scopes) {
+      scopes.push(scope);
+    }
     // hack to implement getProfileUserInfo
-    opts.scopes.push('email', 'profile');
+    scopes.push('email', 'profile');
+    scopes = scopes.join(' ');
 
-    var scopes = opts.scopes.join(' ');
     var key = 'auth ' + scopes;
 
     try {
@@ -243,7 +254,18 @@ var identity = {
       }
     }
 
-    launchFlowForCode(scopes, cb)
+    new Promise(function(resolve, reject) {
+      var escapedScopes = encodeURIComponent(scopes);
+      var redirect_uri = encodeURIComponent(uriOutOfBrowser);
+      var url = `https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&scope=${escapedScopes}&response_type=code&client_id=${manifest.oauth2.client_id}&redirect_uri=${redirect_uri}`;
+      chrome.identity.launchWebAuthFlow({
+        url: url,
+        oob: true,
+        interactive: true,
+      }, function(code) {
+        resolve(exchangeCodeForToken(code, redirect_uri));
+      });
+    })
     .then(function(json) {
       saveToken(key, json);
       cb(null, json.access_token);
