@@ -2,3 +2,4 @@ electron-notifications
 node_modules
 build/
 *.crx
+.DS_Store

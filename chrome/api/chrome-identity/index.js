@@ -209,7 +209,7 @@ var identity = {
       const w = new BrowserWindow(opts);
       var encodedUrl = encodeURIComponent(url);
       w.loadURL(`file://${__dirname}/chrome-identity.html?url=${encodedUrl}`);
-      w.webContents.openDevTools({mode: 'detach'});
+      // w.webContents.openDevTools({mode: 'detach'});
       safeRegister(remote.getCurrentWindow(), w.webContents, function(code) {
         cb(code);
       }, 'code');
