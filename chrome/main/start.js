@@ -1,9 +1,9 @@
 const electron = require('electron');
+const {Menu} = electron;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
-
 
 if (electron == null)
   throw new Error('must be started from main process');
@@ -22,33 +22,27 @@ var appDir;
     if (arg.startsWith('--app-dir=')) {
       // load an unpacked app
       appDir = arg.substring('--app-dir='.length)
-      break;
     }
     else if (arg.startsWith('--app-id=')) {
       // load an app from the chrome store, will download crx.
       global.chromeAppId = arg.substring('--app-id='.length);
       console.log('chrome app id', global.chromeAppId);
-      break;
     }
   }
 
-  if (global.chromeAppId) {
-    try {
-      var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
-      if (result) {
-        global.chromeManifest = result.manifest;
-        appDir = result.path;
-      }
-      else {
-        console.log('app not installed, fetching...');
-      }
-    }
-    catch (e) {
-      console.error(e);
-      // having only this will trigger the runtime to attempt a download from the chrome store.
+  if (!global.chromeAppId && !appDir) {
+    var apps = fs.readdirSync(path.join(__dirname, '..', '..'))
+    .filter(file => file.endsWith('.crx') && !fs.lstatSync(path.join(__dirname, '..', '..', file)).isFile())
+
+    if (apps.length) {
+      var file = apps.pop();
+      appDir = path.join(__dirname, '..', '..', file);
+      global.chromeAppId = file.replace('.crx', '');
+      console.log(`using embedded ${appDir}`)
     }
   }
-  else if (appDir) {
+
+  if (appDir) {
     // appDir = path.join(__dirname, appDir);
     console.log(`starting chrome app at ${appDir}`);
 
@@ -61,7 +55,28 @@ var appDir;
       app.exit(1);
     }
   }
-  else {
+
+  if (global.chromeAppId) {
+    try {
+      var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
+      if (result) {
+        if (!global.chromeManifest || global.chromeManifest.version < result.manifest.version) {
+          global.chromeManifest = result.manifest;
+          appDir = result.path;
+        }
+      }
+      else {
+        if (!global.chromeManifest)
+          console.log('app not installed, fetching...');
+      }
+    }
+    catch (e) {
+      console.error(e);
+      // having only this will trigger the runtime to attempt a download from the chrome store.
+    }
+  }
+
+  if (!global.chromeAppId &&! global.chromeManifest) {
     console.error('Usage:');
     console.error('electron . --app-dir=/path/to/chrome/app');
     console.error('electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm');
@@ -168,7 +183,7 @@ function makeRuntimeWindow() {
   })
   var runtimePath = path.join(__dirname, '..', 'api', 'chrome-runtime.html');
   chromeRuntimeWindow.loadURL(`file://${runtimePath}`);
-  chromeRuntimeWindow.webContents.openDevTools({mode: 'detach'});
+  // chromeRuntimeWindow.webContents.openDevTools({mode: 'detach'});
   chromeRuntimeWindow.hide();
   chromeRuntimeWindow.on('show', chromeRuntimeWindow.hide.bind(chromeRuntimeWindow));
 }
@@ -177,6 +192,9 @@ function makeRuntimeWindow() {
 function calculateId() {
   if (global.chromeAppId) {
     return Promise.resolve(global.chromeAppId);
+  }
+  if (!global.chromeManifest.key) {
+    return Promise.reject('no key in manifest, please provide an --app-id')
   }
 
   return new Promise((resolve, reject) => {
@@ -258,12 +276,39 @@ app.on('ready', function() {
   if (process.argv.indexOf('--silent') != -1)
     wantsActivate = false;
 
+
+  // Create the Application's main menu
+  var template = [{
+      label: "Application",
+      submenu: [
+          { label: "About Application", selector: "orderFrontStandardAboutPanel:" },
+          { type: "separator" },
+          { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }}
+      ]}, {
+      label: "Edit",
+      submenu: [
+          { label: "Undo", accelerator: "CmdOrCtrl+Z", selector: "undo:" },
+          { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", selector: "redo:" },
+          { type: "separator" },
+          { label: "Cut", accelerator: "CmdOrCtrl+X", selector: "cut:" },
+          { label: "Copy", accelerator: "CmdOrCtrl+C", selector: "copy:" },
+          { label: "Paste", accelerator: "CmdOrCtrl+V", selector: "paste:" },
+          { label: "Select All", accelerator: "CmdOrCtrl+A", selector: "selectAll:" }
+      ]}
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
   Promise.all([
     calculateId(),
     registerProtocol(),
   ])
   .then(function() {
     makeRuntimeWindow();
+  })
+  .catch(function(e) {
+    console.error(e);
+    app.exit(-1);
   })
 })
 

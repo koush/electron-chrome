@@ -12,6 +12,7 @@ const {throttleTimeout} = require('./util.js');
 
 const manifest = remote.getGlobal('chromeManifest');
 const appId = remote.getGlobal('chromeAppId');
+console.log(`appId ${appId}`)
 const chromeRuntimeId = remote.getGlobal('chromeRuntimeId');
 const chromeRuntimeVersion = remote.getGlobal('chromeRuntimeVersion');
 
@@ -232,7 +233,7 @@ function createBackground() {
       bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
     console.log(`opening ${bgUrl}`)
     bg.loadURL(bgUrl);
-    // if (windowSettings.isDevToolsOpened)
+    if (windowSettings.isDevToolsOpened)
       bg.webContents.openDevTools({mode: 'detach'});
     // bg.webContents.openDevTools({mode: 'detach'})
     // bg.hide();
