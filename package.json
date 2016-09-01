@@ -4,7 +4,8 @@
   "main": "electron-main.js",
   "description": "Run Chrome apps on Electron",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package": "./package.sh"
   },
   "dependencies": {
     "mkdirp": "",

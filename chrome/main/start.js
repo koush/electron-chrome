@@ -1,9 +1,12 @@
 const electron = require('electron');
+const {autoUpdater} = electron;
 const {Menu} = electron;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
+const notifier = require('../api/electron-notifications');
+
 
 if (electron == null)
   throw new Error('must be started from main process');
@@ -16,6 +19,7 @@ var mainGlobals = require('./global.js');
 // the runtime will need these two values later
 global.chromeManifest = null;
 global.chromeAppId = null;
+global.electronChromeManifest = null;
 var appDir;
 (function() {
   for (var arg of process.argv) {
@@ -82,6 +86,50 @@ var appDir;
     console.error('electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm');
     app.exit(1);
   }
+
+  try {
+    electronChromeManifest = JSON.parse(fs.readFileSync(path.join(appDir, 'electron.json')));
+    if (electronChromeManifest.autoUpdater) {
+      var platform = os.platform() + '_' + os.arch();
+      var version = app.getVersion();
+      var feedUrl;
+      if (electronChromeManifest.autoUpdater.nutsFeedBaseUrl) {
+        // https://nuts.gitbook.com/update-osx.html
+        //  electronChromeManifest.autoUpdater.nutsFeedBaseUrl = https://nuts.example.com/
+        feedUrl = electronChromeManifest.autoUpdater.nutsFeedBaseUrl + 'update/' + platform + '/' + version ;
+        // feedUrl = https://nuts.example.com/update/darwin_x64/1.1.4.0
+      }
+      if (feedUrl) {
+        autoUpdater.setFeedURL(feedUrl);
+        console.log(`autoUpdater feed url ${feedUrl}`)
+        autoUpdater.checkForUpdates();
+      }
+    }
+
+    if (!global.chromeRuntimeId) {
+      global.chromeRuntimeId = electronChromeManifest.runtimeId;
+    }
+
+    console.log('chrome runtime id', global.chromeRuntimeId);
+  }
+  catch (e) {
+    // ignore it, may not exist, code signature issue during dev, etc.
+    console.error(e);
+  }
+
+  autoUpdater.on('update-downloaded', function() {
+    const notification = notifier.notify('Calendar', {
+      vertical: true,
+      message: `There is an update available for ${chromeManifest.name}.`,
+      icon: path.join(appDir, chromeManifest.icons[128]),
+      buttons: [`Restart ${chromeManifest.name}`],
+    })
+
+    notification.on('buttonClicked', function(text, index) {
+      autoUpdater.quitAndInstall();
+    });
+  })
+
   if (global.chromeManifest && global.chromeManifest.nacl_modules) {
     // https://developer.chrome.com/extensions/manifest/nacl_modules
 
@@ -188,7 +236,6 @@ function makeRuntimeWindow() {
   chromeRuntimeWindow.on('show', chromeRuntimeWindow.hide.bind(chromeRuntimeWindow));
 }
 
-
 function calculateId() {
   if (global.chromeAppId) {
     return Promise.resolve(global.chromeAppId);
@@ -196,38 +243,8 @@ function calculateId() {
   if (!global.chromeManifest.key) {
     return Promise.reject('no key in manifest, please provide an --app-id')
   }
-
-  return new Promise((resolve, reject) => {
-    var key = global.chromeManifest.key;
-    var buffer = Buffer.from(key, 'base64');
-    const crypto = require('crypto');
-    var hash = crypto.createHash('sha256');
-
-    hash.on('readable', () => {
-      var data = hash.read();
-      if (!data) {
-        reject(new Error('no data from hash'));
-        return;
-      }
-
-      function translate(c) {
-        if (c >= '0' && c <= '9')
-          return String.fromCharCode('a'.charCodeAt(0) + (c - '0'))
-        return String.fromCharCode(c.charCodeAt(0) + 10)
-      }
-
-      data = data.toString('hex').substring(0, 32);
-      var id = data.split('').map(m => translate(m)).join('');
-      console.log('chrome app id', id);
-      global.chromeAppId = id;
-      resolve(id);
-
-    });
-    hash.write(buffer);
-    hash.end()
-  });
+  return require('./chrome-app-id.js').calculateId(global.chromeManifest.key);
 }
-
 
 function registerProtocol() {
   return new Promise((resolve, reject) => {

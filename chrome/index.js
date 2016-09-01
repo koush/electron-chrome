@@ -13,7 +13,6 @@ for (var arg of process.argv) {
     // for example: lhaagglfcbekgaiedemenlgbkbhjepnk
     // https://chrome.google.com/webstore/detail/electron-chrome-runtime/lhaagglfcbekgaiedemenlgbkbhjepnk?authuser=1
     global.chromeRuntimeId = arg.substring('--runtime-id='.length);
-    console.log('chrome runtime id', global.chromeRuntimeId);
     break;
   }
 }
