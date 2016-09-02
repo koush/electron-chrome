@@ -6,6 +6,7 @@ const fs = require('fs');
 const jq = require('../common/jquery-2.1.1.min.js')
 const mkdirp = require('mkdirp')
 const AdmZip = require('adm-zip');
+const compareChromeVersions = require('../main/chrome-app-version.js').compare;
 
 function getCrxDir(id) {
   return path.join(app.getPath('userData'), 'crx', id);
@@ -149,7 +150,7 @@ function getLatestInstalledCrx(id) {
     return null;
   var crxs = fs.readdirSync(dir)
   .filter(s => s.endsWith('.crx') && s.startsWith('app-'))
-  .sort();
+  .sort(compareChromeVersions);
   if (!crxs.length)
     return null;
   return path.join(dir, crxs.pop());

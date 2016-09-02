@@ -7,6 +7,7 @@ const os = require('os');
 const http = require('http');
 const notifier = require('../api/electron-notifications');
 
+const isChromeAppUpgrade = require('./chrome-app-version.js').isUpgrade;
 
 if (electron == null)
   throw new Error('must be started from main process');
@@ -19,9 +20,20 @@ var mainGlobals = require('./global.js');
 // the runtime will need these two values later
 global.chromeManifest = null;
 global.chromeAppId = null;
-global.electronChromeManifest = null;
 var appDir;
 (function() {
+  // app id search search:
+  // 0) --app-id argument
+  // 1) packageJosn.chrome.appId
+
+  // app directory search order:
+  // 0) --app-dir argument
+  // 1) embededed unpacked-crx
+  // 2) if app id was specified, use latest packed/downloaded version
+
+  const pjson = require('package.json');
+  global.chromeAppId = pjson.chrome && pjson.chrome.appId;
+
   for (var arg of process.argv) {
     if (arg.startsWith('--app-dir=')) {
       // load an unpacked app
@@ -30,25 +42,20 @@ var appDir;
     else if (arg.startsWith('--app-id=')) {
       // load an app from the chrome store, will download crx.
       global.chromeAppId = arg.substring('--app-id='.length);
-      console.log('chrome app id', global.chromeAppId);
     }
   }
 
-  if (!global.chromeAppId && !appDir) {
-    var apps = fs.readdirSync(path.join(__dirname, '..', '..'))
-    .filter(file => file.endsWith('.crx') && !fs.lstatSync(path.join(__dirname, '..', '..', file)).isFile())
+  if (!appDir) {
+    var embeddedPath = path.join(app.getAppPath(), 'unpacked-crx');
+    if (fs.existsSync(embeddedPath))
+      appDir = embeddedPath;
 
-    if (apps.length) {
-      var file = apps.pop();
-      appDir = path.join(__dirname, '..', '..', file);
-      global.chromeAppId = file.replace('.crx', '');
-      console.log(`using embedded ${appDir}`)
-    }
+    console.log(`embedded ${appDir} found`)
   }
 
   if (appDir) {
     // appDir = path.join(__dirname, appDir);
-    console.log(`starting chrome app at ${appDir}`);
+    // console.log(`starting chrome app at ${appDir}`);
 
     var manifestPath = path.join(appDir, 'manifest.json');
     try {
@@ -64,7 +71,7 @@ var appDir;
     try {
       var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
       if (result) {
-        if (!global.chromeManifest || global.chromeManifest.version < result.manifest.version) {
+        if (!global.chromeManifest || isChromeAppUpgrade(global.chromeManifest.version, result.manifest.version)) {
           global.chromeManifest = result.manifest;
           appDir = result.path;
         }
@@ -87,45 +94,54 @@ var appDir;
     app.exit(1);
   }
 
-  try {
-    electronChromeManifest = JSON.parse(fs.readFileSync(path.join(appDir, 'electron.json')));
-    if (electronChromeManifest.autoUpdater) {
-      var platform = os.platform() + '_' + os.arch();
-      var version = app.getVersion();
-      var feedUrl;
-      if (electronChromeManifest.autoUpdater.nutsFeedBaseUrl) {
-        // https://nuts.gitbook.com/update-osx.html
-        //  electronChromeManifest.autoUpdater.nutsFeedBaseUrl = https://nuts.example.com/
-        feedUrl = electronChromeManifest.autoUpdater.nutsFeedBaseUrl + 'update/' + platform + '/' + version ;
-        // feedUrl = https://nuts.example.com/update/darwin_x64/1.1.4.0
-      }
-      if (feedUrl) {
-        autoUpdater.setFeedURL(feedUrl);
-        console.log(`autoUpdater feed url ${feedUrl}`)
+  var electronChromeManifest = pjson.chrome;
+  if (electronChromeManifest && electronChromeManifest.autoUpdater) {
+    var platform = os.platform() + '_' + os.arch();
+    var version = app.getVersion();
+    var feedUrl;
+    if (electronChromeManifest.autoUpdater.nutsFeedBaseUrl) {
+      // https://nuts.gitbook.com/update-osx.html
+      //  electronChromeManifest.autoUpdater.nutsFeedBaseUrl = https://nuts.example.com/
+      feedUrl = electronChromeManifest.autoUpdater.nutsFeedBaseUrl + 'update/' + platform + '/' + version ;
+      // feedUrl = https://nuts.example.com/update/darwin_x64/1.1.4.0
+    }
+    if (feedUrl) {
+      console.log(`autoUpdater feed url ${feedUrl}`)
+      autoUpdater.setFeedURL(feedUrl);
+      try {
         autoUpdater.checkForUpdates();
       }
+      catch (e) {
+        // ignore it, may not exist, code signature issue during dev, etc.
+        console.error(e);
+      }
     }
+  }
 
-    if (!global.chromeRuntimeId) {
-      global.chromeRuntimeId = electronChromeManifest.runtimeId;
-    }
+  if (!global.chromeRuntimeId) {
+    global.chromeRuntimeId = electronChromeManifest.runtimeId;
+  }
 
+  if (global.chromeRuntimeId)
     console.log('chrome runtime id', global.chromeRuntimeId);
-  }
-  catch (e) {
-    // ignore it, may not exist, code signature issue during dev, etc.
-    console.error(e);
-  }
+  if (global.chromeAppId)
+    console.log('chrome app id', global.chromeAppId);
+  if (appDir)
+    console.log('chrome app diectory', appDir);
 
   autoUpdater.on('update-downloaded', function() {
-    const notification = notifier.notify('Calendar', {
+    const notification = notifier.notify(global.chromeManifest.name, {
       vertical: true,
       message: `There is an update available for ${chromeManifest.name}.`,
       icon: path.join(appDir, chromeManifest.icons[128]),
       buttons: [`Restart ${chromeManifest.name}`],
     })
 
-    notification.on('buttonClicked', function(text, index) {
+    notification.once('buttonClicked', function(text, index) {
+      BrowserWindow.getAllWindows().forEach(w => {
+        w.close();
+      })
+
       autoUpdater.quitAndInstall();
     });
   })
@@ -227,6 +243,7 @@ function makeRuntimeWindow() {
   });
   chromeRuntimeWindow.on('close', function() {
     console.log('chromeRuntimeWindow shutdown');
+    console.log('windows remaining', BrowserWindow.getAllWindows())
     chromeRuntimeWindow = null;
   })
   var runtimePath = path.join(__dirname, '..', 'api', 'chrome-runtime.html');

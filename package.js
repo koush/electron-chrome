@@ -7,6 +7,7 @@ const AdmZip = require('adm-zip');
 
 var appDir;
 var appId;
+var runtimeId;
 for (var arg of process.argv) {
   if (arg.startsWith('--app-id=')) {
     appId = arg.substring('--app-id='.length)
@@ -14,6 +15,14 @@ for (var arg of process.argv) {
   else if (arg.startsWith('--app-dir=')) {
     appDir = arg.substring('--app-dir='.length)
   }
+  else if (arg.startsWith('--runtime-id=')) {
+    runtimeId = arg.substring('--runtime-id='.length)
+  }
+}
+
+if (!runtimeId) {
+  console.warn('missing --runtime-id')
+  console.warn('Chrome runtime will only be updated with full electron upgrades.')
 }
 
 if (!appDir) {
@@ -23,6 +32,12 @@ if (!appDir) {
 }
 
 var manifest = JSON.parse(fs.readFileSync(path.join(appDir, 'manifest.json')).toString());
+var chrome;
+try {
+  chrome = JSON.parse(fs.readFileSync(path.join(appDir, 'electron.json')).toString());
+}
+catch (e) {
+}
 
 function withAppId() {
   var packager = require('electron-packager')
@@ -48,9 +63,13 @@ function withAppId() {
       electronPackage.name = manifest.name;
       electronPackage.description = manifest.description;
       electronPackage.version = manifest.version;
-      fs.writeFileSync(electronJson, JSON.stringify(electronPackage));
+      chrome = chrome || {};
+      chrome.runtimeId = chrome.runtimeId || runtimeId;
+      chrome.appId = chrome.appId || appId;
+      electronPackage.chrome = chrome;
+      fs.writeFileSync(electronJson, JSON.stringify(electronPackage, null, 2));
 
-      ncp(appDir, path.join(buildPath, appId + '.crx'), {
+      ncp(appDir, path.join(buildPath, 'unpacked-crx'), {
         clobber: false,
         dereference: true,
       },

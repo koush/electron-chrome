@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-global.chromeRuntimeId = null;
+const pjson = require('package.json');
+
+global.chromeRuntimeId = pjson.chrome && pjson.chrome.runtimeId;
 global.chromeRuntimeVersion = null;
 
 // search for the runtime id
