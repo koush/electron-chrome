@@ -20,7 +20,7 @@ var mainGlobals = require('./global.js');
 // the runtime will need these two values later
 global.chromeManifest = null;
 global.chromeAppId = null;
-var appDir;
+global.chromeAppDir = null;
 (function() {
   // app id search search:
   // 0) --app-id argument
@@ -37,7 +37,7 @@ var appDir;
   for (var arg of process.argv) {
     if (arg.startsWith('--app-dir=')) {
       // load an unpacked app
-      appDir = arg.substring('--app-dir='.length)
+      global.chromeAppDir = arg.substring('--app-dir='.length)
     }
     else if (arg.startsWith('--app-id=')) {
       // load an app from the chrome store, will download crx.
@@ -45,19 +45,19 @@ var appDir;
     }
   }
 
-  if (!appDir) {
+  if (!global.chromeAppDir) {
     var embeddedPath = path.join(app.getAppPath(), 'unpacked-crx');
     if (fs.existsSync(embeddedPath))
-      appDir = embeddedPath;
+      global.chromeAppDir = embeddedPath;
 
-    console.log(`embedded ${appDir} found`)
+    console.log(`embedded ${global.chromeAppDir} found`)
   }
 
-  if (appDir) {
-    // appDir = path.join(__dirname, appDir);
-    // console.log(`starting chrome app at ${appDir}`);
+  if (global.chromeAppDir) {
+    // global.chromeAppDir = path.join(__dirname, global.chromeAppDir);
+    // console.log(`starting chrome app at ${global.chromeAppDir}`);
 
-    var manifestPath = path.join(appDir, 'manifest.json');
+    var manifestPath = path.join(global.chromeAppDir, 'manifest.json');
     try {
       global.chromeManifest = JSON.parse(fs.readFileSync(manifestPath).toString());
     }
@@ -73,7 +73,7 @@ var appDir;
       if (result) {
         if (!global.chromeManifest || isChromeAppUpgrade(global.chromeManifest.version, result.manifest.version)) {
           global.chromeManifest = result.manifest;
-          appDir = result.path;
+          global.chromeAppDir = result.path;
         }
       }
       else {
@@ -126,14 +126,14 @@ var appDir;
     console.log('chrome runtime id', global.chromeRuntimeId);
   if (global.chromeAppId)
     console.log('chrome app id', global.chromeAppId);
-  if (appDir)
-    console.log('chrome app diectory', appDir);
+  if (global.chromeAppDir)
+    console.log('chrome app diectory', global.chromeAppDir);
 
   autoUpdater.on('update-downloaded', function() {
     const notification = notifier.notify(global.chromeManifest.name, {
       vertical: true,
       message: `There is an update available for ${chromeManifest.name}.`,
-      icon: path.join(appDir, chromeManifest.icons[128]),
+      icon: path.join(global.chromeAppDir, chromeManifest.icons[128]),
       buttons: [`Restart ${chromeManifest.name}`],
     })
 
@@ -185,7 +185,7 @@ var appDir;
           continue;
         }
 
-        var nmfPath = path.join(appDir, nacl_module.path);
+        var nmfPath = path.join(global.chromeAppDir, nacl_module.path);
         try {
           var nmf = JSON.parse(fs.readFileSync(nmfPath));
         }
@@ -284,7 +284,7 @@ function registerProtocol() {
         }
 
         var file = request.url.replace(`chrome-extension://${chrome.runtime.id}/`, '');
-        file = path.join(appDir, file);
+        file = path.join(global.chromeAppDir, file);
         var query = file.indexOf('?');
         if (query != -1)
           file = file.substring(0, query);

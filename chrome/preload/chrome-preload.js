@@ -205,7 +205,9 @@ chrome.runtime.connect = function() {
   //   connectInfo = arguments[i++];
   return new Port(extensionId)
 }
-
+chrome.runtime.getAppDirectory = function() {
+  return remote.getGlobal('chromeAppDir');
+}
 
 window.chrome = chrome;
 window.require = require;
