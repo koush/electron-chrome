@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+require('module').globalPaths.push(global.electronChromeRoot);
+require('module').globalPaths.push(path.join(global.electronChromeRoot, 'node_modules'));
+
 const pjson = require('package.json');
 
 global.chromeRuntimeId = pjson.chrome && pjson.chrome.runtimeId;

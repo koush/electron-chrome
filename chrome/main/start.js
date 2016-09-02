@@ -32,6 +32,31 @@ global.chromeAppDir = null;
   // 2) if app id was specified, use latest packed/downloaded version
 
   const pjson = require('package.json');
+
+  var electronChromeManifest = pjson.chrome;
+  if (electronChromeManifest && electronChromeManifest.autoUpdater) {
+    var platform = os.platform() + '_' + os.arch();
+    var version = app.getVersion();
+    var feedUrl;
+    if (electronChromeManifest.autoUpdater.nutsFeedBaseUrl) {
+      // https://nuts.gitbook.com/update-osx.html
+      //  electronChromeManifest.autoUpdater.nutsFeedBaseUrl = https://nuts.example.com/
+      feedUrl = electronChromeManifest.autoUpdater.nutsFeedBaseUrl + 'update/' + platform + '/' + version ;
+      // feedUrl = https://nuts.example.com/update/darwin_x64/1.1.4.0
+    }
+    if (feedUrl) {
+      console.log(`autoUpdater feed url ${feedUrl}`)
+      autoUpdater.setFeedURL(feedUrl);
+      try {
+        autoUpdater.checkForUpdates();
+      }
+      catch (e) {
+        // ignore it, may not exist, code signature issue during dev, etc.
+        console.error(e);
+      }
+    }
+  }
+
   global.chromeAppId = pjson.chrome && pjson.chrome.appId;
 
   for (var arg of process.argv) {
@@ -92,30 +117,6 @@ global.chromeAppDir = null;
     console.error('electron . --app-dir=/path/to/chrome/app');
     console.error('electron . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm');
     app.exit(1);
-  }
-
-  var electronChromeManifest = pjson.chrome;
-  if (electronChromeManifest && electronChromeManifest.autoUpdater) {
-    var platform = os.platform() + '_' + os.arch();
-    var version = app.getVersion();
-    var feedUrl;
-    if (electronChromeManifest.autoUpdater.nutsFeedBaseUrl) {
-      // https://nuts.gitbook.com/update-osx.html
-      //  electronChromeManifest.autoUpdater.nutsFeedBaseUrl = https://nuts.example.com/
-      feedUrl = electronChromeManifest.autoUpdater.nutsFeedBaseUrl + 'update/' + platform + '/' + version ;
-      // feedUrl = https://nuts.example.com/update/darwin_x64/1.1.4.0
-    }
-    if (feedUrl) {
-      console.log(`autoUpdater feed url ${feedUrl}`)
-      autoUpdater.setFeedURL(feedUrl);
-      try {
-        autoUpdater.checkForUpdates();
-      }
-      catch (e) {
-        // ignore it, may not exist, code signature issue during dev, etc.
-        console.error(e);
-      }
-    }
   }
 
   if (!global.chromeRuntimeId) {

@@ -6,7 +6,8 @@ const fs = require('fs');
 const os = require('os');
 
 const electronChromeRoot = remote.getGlobal('electronChromeRoot');
-require('module').globalPaths.push(path.join(electronChromeRoot), 'node_modules');
+require('module').globalPaths.push(electronChromeRoot);
+require('module').globalPaths.push(path.join(electronChromeRoot, 'node_modules'));
 
 const {throttleTimeout} = require('./util.js');
 
