@@ -160,11 +160,11 @@ global.chromeAppDir = null;
     // {
     //   "files": {},
     //   "program": {
-    //     "mac": {
+    //     "darwin": {
     //       "url": "mac/video_decode.so"
     //     },
-    //     "windows": {
-    //       "url": "windows/video_decode.dll"
+    //     "win32": {
+    //       "url": "win/video_decode.dll"
     //     },
     //     "linux": {
     //       "url": "linux/video_decode.so"
@@ -172,54 +172,44 @@ global.chromeAppDir = null;
     //   }
     // }
 
-    var hostMap = {
-      "darwin": "mac",
-      "win32" : "win",
-      "linux": "linux",
-    }
 
-    var host = hostMap[os.platform()];
-    if (host) {
-      for (var nacl_module of global.chromeManifest.nacl_modules) {
-        if (!nacl_module.path || !nacl_module.mime_type) {
-          console.error('nacl_module must have both path and mime_type keys');
-          continue;
-        }
-
-        var nmfPath = path.join(global.chromeAppDir, nacl_module.path);
-        try {
-          var nmf = JSON.parse(fs.readFileSync(nmfPath));
-        }
-        catch (e) {
-          console.error('error loading', nmfPath, 'skipping plugin')
-          continue;
-        }
-        if (!nmf.program) {
-          console.error('program key not found in native manifest file', nacl_module.path);
-          continue;
-        }
-
-        var program = nmf.program[host];
-        if (!program) {
-          console.error(host, 'key not found in native manifest file programs', nacl_module.path);
-          continue;
-        }
-
-        var url = program.url;
-        if (!url) {
-          console.error(url, 'key not found in native manifest file programs', nacl_module.path, host);
-          continue;
-        }
-
-        var ppapiPath = path.join(path.dirname(nmfPath), url);
-        var flag = ppapiPath + ';' + nacl_module.mime_type;
-        // console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
-        console.log('PPAPI path ' + flag);
-        app.commandLine.appendSwitch('register-pepper-plugins', flag);
+    var host = os.platform();
+    for (var nacl_module of global.chromeManifest.nacl_modules) {
+      if (!nacl_module.path || !nacl_module.mime_type) {
+        console.error('nacl_module must have both path and mime_type keys');
+        continue;
       }
-    }
-    else {
-      console.error("Not loading plugins, unknown host.");
+
+      var nmfPath = path.join(global.chromeAppDir, nacl_module.path);
+      try {
+        var nmf = JSON.parse(fs.readFileSync(nmfPath));
+      }
+      catch (e) {
+        console.error('error loading', nmfPath, 'skipping plugin')
+        continue;
+      }
+      if (!nmf.program) {
+        console.error('program key not found in native manifest file', nacl_module.path);
+        continue;
+      }
+
+      var program = nmf.program[host];
+      if (!program) {
+        console.error(host, 'key not found in native manifest file programs', nacl_module.path);
+        continue;
+      }
+
+      var url = program.url;
+      if (!url) {
+        console.error(url, 'key not found in native manifest file programs', nacl_module.path, host);
+        continue;
+      }
+
+      var ppapiPath = path.join(path.dirname(nmfPath), url);
+      var flag = ppapiPath + ';' + nacl_module.mime_type;
+      // console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
+      console.log('PPAPI path ' + flag);
+      app.commandLine.appendSwitch('register-pepper-plugins', flag);
     }
   }
 })();
