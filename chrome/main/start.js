@@ -174,7 +174,7 @@ global.chromeAppDir = null;
 
     var hostMap = {
       "darwin": "mac",
-      "win32" : "windows",
+      "win32" : "win",
       "linux": "linux",
     }
 
