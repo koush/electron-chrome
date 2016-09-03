@@ -2,12 +2,15 @@ const process = require('process');
 const path = require('path');
 const fs = require('fs');
 const AdmZip = require('adm-zip');
+const mkdirp = require('mkdirp');
+const os = require('os');
 
 // const createDMG = require('electron-installer-dmg')
 
 var appDir;
 var appId;
 var runtimeId;
+var assets;
 for (var arg of process.argv) {
   if (arg.startsWith('--app-id=')) {
     appId = arg.substring('--app-id='.length)
@@ -17,6 +20,9 @@ for (var arg of process.argv) {
   }
   else if (arg.startsWith('--runtime-id=')) {
     runtimeId = arg.substring('--runtime-id='.length)
+  }
+  else if (arg.startsWith('--assets=')) {
+    assets = arg.substring('--assets='.length)
   }
 }
 
@@ -69,6 +75,7 @@ function withAppId() {
       electronPackage.chrome = chrome;
       fs.writeFileSync(electronJson, JSON.stringify(electronPackage, null, 2));
 
+      console.log('copying app into place');
       ncp(appDir, path.join(buildPath, 'unpacked-crx'), {
         clobber: false,
         dereference: true,
@@ -79,7 +86,26 @@ function withAppId() {
           process.exit(-1);
         }
         console.log('app copied into place');
-        callback();
+        if (!assets) {
+          callback();
+          return;
+        }
+
+        console.log('copying platform-assets into place for', os.platform());
+        var platformAssets = path.join(assets, os.platform());
+        var platformAssetsDest = path.join(buildPath, 'platform-assets', os.platform());
+        mkdirp.sync(platformAssetsDest);
+        ncp(platformAssets, platformAssetsDest, {
+          clobber: false,
+          dereference: true,
+        }, function(err) {
+          if (err) {
+            console.error(err);
+            process.exit(-1);
+          }
+          console.log('platform-assets copied into place');
+          callback();
+        })
       });
     }]
   }, function (err, appPaths) {

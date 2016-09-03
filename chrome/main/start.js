@@ -161,10 +161,10 @@ global.chromeAppDir = null;
     //   "files": {},
     //   "program": {
     //     "darwin": {
-    //       "url": "mac/video_decode.so"
+    //       "url": "darwin/video_decode.so"
     //     },
     //     "win32": {
-    //       "url": "win/video_decode.dll"
+    //       "url": "win32/video_decode.dll"
     //     },
     //     "linux": {
     //       "url": "linux/video_decode.so"
