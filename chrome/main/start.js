@@ -205,7 +205,17 @@ global.chromeAppDir = null;
         continue;
       }
 
+      // search relative to nmf, and also search relative to platform-assets
       var ppapiPath = path.join(path.dirname(nmfPath), url);
+      if (!fs.existsSync(ppapiPath)) {
+        console.error(`${ppapiPath} not found.`);
+        ppapiPath = path.join(app.getAppPath(), 'platform-assets', url);
+        if (!fs.existsSync(ppapiPath)) {
+          console.error(`${ppapiPath} not found.`);
+          continue;
+        }
+      }
+
       var flag = ppapiPath + ';' + nacl_module.mime_type;
       // console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
       console.log('PPAPI path ' + flag);
