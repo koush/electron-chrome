@@ -119,7 +119,7 @@ global.chromeAppDir = null;
     app.exit(1);
   }
 
-  if (!global.chromeRuntimeId) {
+  if (!global.chromeRuntimeId && electronChromeManifest) {
     global.chromeRuntimeId = electronChromeManifest.runtimeId;
   }
 
