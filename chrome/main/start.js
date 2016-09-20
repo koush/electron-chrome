@@ -128,7 +128,7 @@ global.chromeAppDir = null;
   if (global.chromeAppId)
     console.log('chrome app id', global.chromeAppId);
   if (global.chromeAppDir)
-    console.log('chrome app diectory', global.chromeAppDir);
+    console.log('chrome app directory', global.chromeAppDir);
 
   autoUpdater.on('update-downloaded', function() {
     const notification = notifier.notify(global.chromeManifest.name, {
