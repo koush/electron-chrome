@@ -29,6 +29,7 @@ for (var arg of process.argv) {
 if (!runtimeId) {
   console.warn('missing --runtime-id')
   console.warn('Chrome runtime will only be updated with full electron upgrades.')
+  console.warn('');
 }
 
 if (!appDir) {
@@ -46,9 +47,21 @@ catch (e) {
 }
 
 function withAppId() {
+  // grab largest
+  var key = Object.keys(manifest.icons).sort((a,b) => parseInt(a) < parseInt(b))[0].toString();
+  var icon = path.join(appDir, manifest.icons[key]);
+  var child = require('child_process').exec(`icon.sh ${icon}`)
+  child.stdout.pipe(process.stdout)
+  child.on('exit', function() {
+    startPackager();
+  })
+}
+
+function startPackager() {
   var packager = require('electron-packager')
   var out = path.join(__dirname, 'build');
   packager({
+    icon: 'build/MyIcon',
     dir: __dirname,
     out: out,
     platform: 'darwin',
@@ -142,7 +155,6 @@ function needAppId() {
   console.error('example: --app-id=gidgenkbbabolejbgbpnhbimgjbffefm')
   process.exit(-1);
 }
-
 
 if (!appId) {
   if (!manifest.key) {
