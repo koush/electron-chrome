@@ -128,6 +128,14 @@ function startPackager() {
     .filter(appPath => appPath.indexOf('darwin') != -1)
     .forEach(appPath => {
 
+      var infoPlist = path.join(appPath, manifest.name + '.app', 'Contents', 'Info.plist');
+      console.log(infoPlist);
+      var child = require('child_process').exec(`defaults write ${infoPlist} CFBundleURLTypes '<array><dict><key>CFBundleURLName</key><string>${manifest.name}</string><key>CFBundleURLSchemes</key><array><string>ec-${appId}</string></array></dict></array>'`)
+      child.stdout.pipe(process.stdout)
+      child.on('exit', function() {
+      })
+
+
       // var zip = new AdmZip();
       // zip.addLocalFolder(path.join(appPath, manifest.name + '.app'), path.basename(appPath));
       // console.log('writing zip');

@@ -224,8 +224,13 @@ global.chromeAppDir = null;
   }
 })();
 
-// app.commandLine.appendSwitch('allow-file-access-from-files', null);
-// app.commandLine.appendSwitch('allow-file-access-from-files', 'true');
+global.launchUrl = null;
+app.on('open-url', function(event, url) {
+  event.preventDefault();
+  console.log(`custom url: ${url}`)
+  if (!chromeRuntimeWindow)
+    launchUrl = url;
+});
 
 global.chromeRuntimeWindow = null;
 function makeRuntimeWindow() {

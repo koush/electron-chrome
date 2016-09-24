@@ -1,3 +1,5 @@
+console.log('runtime started');
+
 const path = require('path');
 const {electron, remote} = require('./electron-remote.js')
 const {shell} = require('electron');
@@ -11,11 +13,52 @@ require('module').globalPaths.push(path.join(electronChromeRoot, 'node_modules')
 
 const {throttleTimeout} = require('./util.js');
 
-const manifest = remote.getGlobal('chromeManifest');
+const manifest = JSON.parse(JSON.stringify(remote.getGlobal('chromeManifest')));
 const appId = remote.getGlobal('chromeAppId');
 console.log(`appId ${appId}`)
 const chromeRuntimeId = remote.getGlobal('chromeRuntimeId');
 const chromeRuntimeVersion = remote.getGlobal('chromeRuntimeVersion');
+const launchUrl = remote.getGlobal('launchUrl');
+
+function handleLaunchUrl(url) {
+  const p = `ec-${appId}`;
+  console.log(`custom url: ${url}`)
+  var insecure = url.replace(p, 'http');
+  var secure = url.replace(p, 'https');
+  Object.keys(manifest.url_handlers).forEach(function(key) {
+    console.log(key);
+    var entry = manifest.url_handlers[key];
+    entry.matches.forEach(function(match) {
+      var matchUrl;
+      if (secure.match(match))
+        matchUrl = secure;
+      else if (insecure.match(match))
+        matchUrl = insecure;
+
+      if (matchUrl) {
+        chrome.app.runtime.onLaunched.invokeListeners(null, [{
+          id: key,
+          isKioskSession: false,
+          isPublicSession: false,
+          source: "url_handler",
+          url: matchUrl
+        }]);
+      }
+    })
+  })
+  console.log('custom url', url);
+}
+
+if (manifest.url_handlers) {
+  const p = `ec-${appId}`;
+  app.setAsDefaultProtocolClient(p);
+  app.on('open-url', function(event, url) {
+    event.preventDefault();
+    handleLaunchUrl(url);
+  })
+
+  console.log(`launchUrl: ${launchUrl}`);
+}
 
 if (!global.localStorage) {
   // chrome.storage and windows are backed by localStorage.
@@ -221,6 +264,9 @@ function createBackground() {
       console.log('background onload')
       if (remote.getGlobal('wantsActivate'))
         app.emit('activate');
+
+        if (launchUrl)
+          handleLaunchUrl(launchUrl);
 
         // trigger an update check
         startUpdateChecker();
