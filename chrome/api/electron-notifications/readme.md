@@ -26,6 +26,16 @@ notifier.notify('Calendar', {
 npm install --save electron-notifications
 ~~~
 
+## Playbook
+
+If you'd like to see this in action you can run the playbook and try out live
+examples and edit the code in place.
+
+~~~
+git clone git@github.com:blainesch/electron-notifications.git
+npm run playbook
+~~~
+
 ## Introduction
 
 When you create a new notification, your notification is queued, since we only
@@ -62,8 +72,8 @@ notification.on('clicked', () => {
 
 ### Swiped Right
 
-When the notification has been swiped to the right. This usually indiciated the
-user wants to dismiss the notification.
+When the notification has been swiped to the right. This usually indicates that
+the user wants to dismiss the notification.
 
 ~~~ javascript
 const notification = notifier.notify('Calendar')

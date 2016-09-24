@@ -1,8 +1,12 @@
 {
   "name": "electron-notifications",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "A node module for sending notifications in electron applications",
   "main": "index.js",
+  "scripts": {
+    "playbook": "electron playbook/main.js",
+    "lint": "standard"
+  },
   "keywords": [
     "electron",
     "notification",
@@ -15,5 +19,17 @@
   ],
   "repository": "git@github.com:blainesch/electron-notifications.git",
   "author": "Blaine Schmeisser",
-  "license": "MIT"
+  "license": "MIT",
+  "standard": {
+    "globals": [
+      "CodeMirror"
+    ],
+    "ignore": [
+      "playbook/assets/vendor"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^1.3.4",
+    "standard": "^8.0.0"
+  }
 }

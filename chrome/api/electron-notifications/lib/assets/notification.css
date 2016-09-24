@@ -95,38 +95,40 @@ html, body {
   float: right;
   position: relative;
 }
-#notification #buttons.vertical {
+#notification.vertical #buttons {
   width: 100%;
   position: absolute;
   top: 80px;
 }
-#notification #buttons.vertical a {
+#notification.vertical.single #buttons a {
+  height: 40px;
+  line-height: 40px;
+}
+#notification.vertical #buttons a {
   padding-left: 20px;
   text-align: left;
   width: 100%;
   height: 40px;
   line-height: 40px;
 }
-#notification #buttons.double a {
+#notification.double #buttons a {
   height: 40px;
   line-height: 40px;
 }
-#notification #buttons.double a:nth-child(1) {
+#notification.double #buttons a:nth-child(1) {
   border-radius: 0 10px 0 0;
 }
-#notification #buttons.double a:nth-child(2) {
+#notification.double #buttons a:nth-child(2) {
   box-sizing: border-box;
   border-top: 1px solid #D7D7D7;
   border-radius: 0 0 10px 0;
   top: 40px;
 }
-#notification #buttons.vertical.single a:nth-child(1) {
+#notification.vertical.double #buttons a:nth-child(2),
+#notification.vertical.single #buttons a:nth-child(1) {
   border-radius: 0 0 10px 10px;
 }
-#notification #buttons.vertical.double a:nth-child(2) {
-  border-radius: 0 0 10px 10px;
-}
-#notification #buttons.single a {
+#notification.single #buttons a {
   height: 80px;
   line-height: 80px;
   border-radius: 0 10px 10px 0;
