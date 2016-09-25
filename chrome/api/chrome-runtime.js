@@ -16,6 +16,7 @@ const {throttleTimeout} = require('./util.js');
 const manifest = JSON.parse(JSON.stringify(remote.getGlobal('chromeManifest')));
 const appId = remote.getGlobal('chromeAppId');
 console.log(`appId ${appId}`)
+
 const chromeRuntimeId = remote.getGlobal('chromeRuntimeId');
 const chromeRuntimeVersion = remote.getGlobal('chromeRuntimeVersion');
 const launchUrl = remote.getGlobal('launchUrl');

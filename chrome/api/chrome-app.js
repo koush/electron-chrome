@@ -1,6 +1,6 @@
 const path = require('path');
 const {electron, remote} = require('./electron-remote.js')
-const {BrowserWindow, app, protocol} = electron;
+const {BrowserWindow, app, protocol, nativeImage} = electron;
 const {throttleTimeout} = require('./util.js');
 const {
   makeEvent,
@@ -13,6 +13,17 @@ const {
 
 const window = exports.window = {};
 const runtime = exports.runtime = {};
+
+const manifest = JSON.parse(JSON.stringify(remote.getGlobal('chromeManifest')));
+const appDir = remote.getGlobal('chromeAppDir');
+const appIcon = (function() {
+  if (appDir && manifest && Object.keys(manifest.icons).length) {
+    var key = Object.keys(manifest.icons).sort((a,b) => parseInt(a) < parseInt(b))[0].toString();
+    var icon = path.join(appDir, manifest.icons[key]);
+    console.log(`app icon: ${icon}`)
+    return nativeImage.createFromPath(icon);
+  }
+})();
 
 exports.runtime.onLaunched = makeEvent();
 
@@ -54,6 +65,7 @@ exports.window.create = function(options, cb) {
   var opts = {
     show: false,
     frame: !frameless,
+    icon: appIcon,
   };
   var copyProps = ['x', 'y', 'width', 'height', 'minWidth', 'minHeight'];
   for (var i in copyProps) {

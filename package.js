@@ -4,6 +4,7 @@ const fs = require('fs');
 const AdmZip = require('adm-zip');
 const mkdirp = require('mkdirp');
 const os = require('os');
+const electronInstaller = require('electron-winstaller-fixed');
 
 // const createDMG = require('electron-installer-dmg')
 
@@ -64,7 +65,7 @@ function startPackager() {
     icon: 'build/MyIcon',
     dir: __dirname,
     out: out,
-    platform: 'darwin',
+    platform: 'win32',
     arch: 'all',
     'osx-sign': true,
     name: manifest.name,
@@ -122,39 +123,30 @@ function startPackager() {
       });
     }]
   }, function (err, appPaths) {
-    // var icon = path.join(appDir, manifest.icons['128']);
-    // console.log(icon);
     appPaths
     .filter(appPath => appPath.indexOf('darwin') != -1)
     .forEach(appPath => {
-
       var infoPlist = path.join(appPath, manifest.name + '.app', 'Contents', 'Info.plist');
       console.log(infoPlist);
       var child = require('child_process').exec(`defaults write ${infoPlist} CFBundleURLTypes '<array><dict><key>CFBundleURLName</key><string>${manifest.name}</string><key>CFBundleURLSchemes</key><array><string>ec-${appId}</string></array></dict></array>'`)
       child.stdout.pipe(process.stdout)
-      child.on('exit', function() {
-      })
-
-
-      // var zip = new AdmZip();
-      // zip.addLocalFolder(path.join(appPath, manifest.name + '.app'), path.basename(appPath));
-      // console.log('writing zip');
-      // zip.writeZip(path.join(appPath, manifest.name + '.zip'));
-      // console.log('done writing zip');
-
-      // createDMG({
-      //   out: appPath,
-      //   overwrite: true,
-      //   name: manifest.name,
-      //   appPath: path.join(appPath, manifest.name + '.app'),
-      //   icon: icon,
-      // }, function done (err) {
-      //   if (err)
-      //     console.error('dmg error', err);
-      //   else
-      //     console.log('done packaging .dmg')
-      // })
     })
+
+    appPaths
+    .filter(appPath => appPath.indexOf('win32') != -1)
+    .forEach(appPath => {
+      var resultPromise = electronInstaller.createWindowsInstaller({
+        appDirectory: appPath,
+        outputDirectory: appPath + '-installer',
+        authors: manifest.author || manifest.name,
+        version: manifest.version,
+        exe: manifest.name + '.exe',
+        iconUrl: 'foo://bar',
+      });
+
+      resultPromise.then(() => console.log("Windows Intaller created."), (e) => { console.log(`Windows Installer failed: ${e.message}`); console.log(e); } );
+    })
+
   })
 }
 

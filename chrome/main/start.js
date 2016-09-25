@@ -72,10 +72,10 @@ global.chromeAppDir = null;
 
   if (!global.chromeAppDir) {
     var embeddedPath = path.join(app.getAppPath(), 'unpacked-crx');
-    if (fs.existsSync(embeddedPath))
+    if (fs.existsSync(embeddedPath)) {
       global.chromeAppDir = embeddedPath;
-
-    console.log(`embedded ${global.chromeAppDir} found`)
+      console.log(`embedded ${global.chromeAppDir} found`);
+    }
   }
 
   if (global.chromeAppDir) {
