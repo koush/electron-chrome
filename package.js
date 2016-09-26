@@ -129,7 +129,17 @@ function startPackager() {
       var infoPlist = path.join(appPath, manifest.name + '.app', 'Contents', 'Info.plist');
       console.log(infoPlist);
       var child = require('child_process').exec(`defaults write ${infoPlist} CFBundleURLTypes '<array><dict><key>CFBundleURLName</key><string>${manifest.name}</string><key>CFBundleURLSchemes</key><array><string>ec-${appId}</string></array></dict></array>'`)
-      child.stdout.pipe(process.stdout)
+      child.stdout.pipe(process.stdout);
+      child.on('exit', function() {
+        console.log(appPath);
+        var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-mac.zip`, `${manifest.name}.app`], {
+          cwd: appPath,
+        });
+        child.stdout.pipe(process.stdout);
+        child.on('exit', function() {
+          console.log('zip complete');
+        })
+      })
     })
 
     appPaths
