@@ -342,7 +342,7 @@ app.on('ready', function() {
       ]}
   ];
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  // Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   Promise.all([
     calculateId(),

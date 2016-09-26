@@ -65,7 +65,7 @@ function startPackager() {
     icon: 'build/MyIcon',
     dir: __dirname,
     out: out,
-    platform: 'win32',
+    platform: os.platform(),
     arch: 'all',
     'osx-sign': true,
     name: manifest.name,
@@ -135,16 +135,24 @@ function startPackager() {
     appPaths
     .filter(appPath => appPath.indexOf('win32') != -1)
     .forEach(appPath => {
+      var key = Object.keys(manifest.icons).sort((a,b) => parseInt(a) < parseInt(b))[0].toString();
+      var icon = path.join(appDir, manifest.icons[key]);
+      var iconUrl = 'file://' + icon.replace(/\\/g, '/').replace(':', '');
+      // console.log(iconUrl);
+
       var resultPromise = electronInstaller.createWindowsInstaller({
         appDirectory: appPath,
         outputDirectory: appPath + '-installer',
         authors: manifest.author || manifest.name,
         version: manifest.version,
         exe: manifest.name + '.exe',
-        iconUrl: 'foo://bar',
+        setupExe: path.basename(appPath) + '.exe',
+        productName: manifest.name,
         title: manifest.name,
-        name: path.basename(appPath),
+        name: manifest.name,
+        iconUrl: iconUrl,
         description: manifest.description,
+        noMsi: true,
       });
 
       resultPromise.then(() => console.log("Windows Intaller created."), (e) => { console.log(`Windows Installer failed: ${e.message}`); console.log(e); } );
