@@ -130,6 +130,11 @@ global.chromeAppDir = null;
   if (global.chromeAppDir)
     console.log('chrome app directory', global.chromeAppDir);
 
+  autoUpdater.on('error', function() {
+    console.error('autoUpdater error');
+    console.error(arguments);
+  })
+
   autoUpdater.on('update-downloaded', function() {
     const notification = notifier.notify(global.chromeManifest.name, {
       vertical: true,

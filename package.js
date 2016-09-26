@@ -4,7 +4,7 @@ const fs = require('fs');
 const AdmZip = require('adm-zip');
 const mkdirp = require('mkdirp');
 const os = require('os');
-const electronInstaller = require('electron-winstaller-fixed');
+const electronInstaller = require('electron-winstaller');
 
 // const createDMG = require('electron-installer-dmg')
 
@@ -142,6 +142,9 @@ function startPackager() {
         version: manifest.version,
         exe: manifest.name + '.exe',
         iconUrl: 'foo://bar',
+        title: manifest.name,
+        name: path.basename(appPath),
+        description: manifest.description,
       });
 
       resultPromise.then(() => console.log("Windows Intaller created."), (e) => { console.log(`Windows Installer failed: ${e.message}`); console.log(e); } );
