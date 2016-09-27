@@ -58,11 +58,19 @@ function withAppId() {
   })
 }
 
+const platformIconExtensions = {
+  win32: '.ico',
+  darwin: '.icns',
+  linux: '.png',
+}
+
+const platformIcon = path.join(process.cwd(), 'build/MyIcon' + platformIconExtensions[os.platform()]);
+
 function startPackager() {
   var packager = require('electron-packager')
   var out = path.join(__dirname, 'build');
   packager({
-    icon: 'build/MyIcon',
+    icon: platformIcon,
     dir: __dirname,
     out: out,
     platform: os.platform(),
@@ -70,8 +78,13 @@ function startPackager() {
     'osx-sign': true,
     name: manifest.name,
     'app-version': manifest.version,
-
     overwrite: true,
+    win32metadata: {
+      CompanyName: manifest.author || manifest.name,
+      FileDescription: manifest.name,
+      ProductName: manifest.name,
+      InternalName: manifest.name,
+    },
     // all: true,
     afterCopy: [function(buildPath, electronVersion, platform, arch, callback) {
       var ncp = require('ncp').ncp;
@@ -148,7 +161,9 @@ function startPackager() {
       var key = Object.keys(manifest.icons).sort((a,b) => parseInt(a) < parseInt(b))[0].toString();
       var icon = path.join(appDir, manifest.icons[key]);
       var iconUrl = 'file://' + icon.replace(/\\/g, '/').replace(':', '');
-      // console.log(iconUrl);
+
+      iconUrl = 'file://' + path.join(process.cwd(), platformIcon).replace(/\\/g, '/').replace(':', '');
+      console.log(iconUrl);
 
       var resultPromise = electronInstaller.createWindowsInstaller({
         appDirectory: appPath,

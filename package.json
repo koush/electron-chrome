@@ -14,7 +14,7 @@
     "electron-squirrel-startup": ""
   },
   "devDependencies": {
-    "electron-packager": "^7.7.0",
+    "electron-packager": "^8.0.0",
     "electron-prebuilt": "^1.4.1",
     "electron-winstaller": "^2.3.4"
   }
