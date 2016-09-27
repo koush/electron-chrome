@@ -18,9 +18,34 @@ const {app, protocol, BrowserWindow, shell} = electron;
 var mainGlobals = require('./global.js');
 
 // the runtime will need these two values later
+global.chrome = null;
 global.chromeManifest = null;
 global.chromeAppId = null;
 global.chromeAppDir = null;
+
+// a comment
+var shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
+  if (!global.chrome)
+    return;
+
+  if (commandLine.length == 2 && commandLine[1].startsWith('ec-' + global.chromeAppId + "://")) {
+    app.emit('open-url', null, commandLine[1]);
+  }
+  else {
+    chrome.app.runtime.onLaunched.invokeListeners(null, [{
+      commandLine: commandLine,
+      isKioskSession: false,
+      isPublicSession: false,
+      source: "command_line"
+    }]);
+  }
+});
+
+if (shouldQuit) {
+  app.quit()
+  return;
+}
+
 (function() {
   // app id search search:
   // 0) --app-id argument
@@ -231,7 +256,8 @@ global.chromeAppDir = null;
 
 global.launchUrl = null;
 app.on('open-url', function(event, url) {
-  event.preventDefault();
+  if (event)
+    event.preventDefault();
   console.log(`custom url: ${url}`)
   if (!chromeRuntimeWindow)
     launchUrl = url;

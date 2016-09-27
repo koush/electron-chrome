@@ -54,7 +54,8 @@ if (manifest.url_handlers) {
   const p = `ec-${appId}`;
   app.setAsDefaultProtocolClient(p);
   app.on('open-url', function(event, url) {
-    event.preventDefault();
+    if (event)
+      event.preventDefault();
     handleLaunchUrl(url);
   })
 
