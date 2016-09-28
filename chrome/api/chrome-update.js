@@ -91,13 +91,11 @@ function downloadLatestVersion(id) {
 }
 
 var deleteRecursive = function(inPath) {
-  if (!fs.lstatSync(inPath).isDirectory()) {
-    try {
-      fs.unlinkSync(inPath);
-    }
-    catch (ignore) {
-    }
-    return;
+  // existsSync follows symlinks and crap, so just try to delete straight up first
+  try {
+    fs.unlinkSync(inPath);
+  }
+  catch (ignore) {
   }
 
   if (fs.existsSync(inPath)) {
