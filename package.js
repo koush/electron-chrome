@@ -48,6 +48,10 @@ if (!runtimeId) {
   console.warn('Chrome runtime will only be updated with full electron upgrades.')
   console.warn('');
 }
+else {
+  console.log(`chrome runtime id ${runtimeId}`)
+  console.log();
+}
 
 function withAppId() {
   // grab largest
