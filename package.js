@@ -27,12 +27,6 @@ for (var arg of process.argv) {
   }
 }
 
-if (!runtimeId) {
-  console.warn('missing --runtime-id')
-  console.warn('Chrome runtime will only be updated with full electron upgrades.')
-  console.warn('');
-}
-
 if (!appDir) {
   console.error('missing --app-dir argument');
   console.error('example: --app-dir=/path/to/chrome/app')
@@ -45,6 +39,14 @@ try {
   chrome = JSON.parse(fs.readFileSync(path.join(appDir, 'electron.json')).toString());
 }
 catch (e) {
+}
+
+runtimeId = runtimeId || (chrome && chrome.runtimeId);
+
+if (!runtimeId) {
+  console.warn('missing --runtime-id')
+  console.warn('Chrome runtime will only be updated with full electron upgrades.')
+  console.warn('');
 }
 
 function withAppId() {
@@ -70,21 +72,35 @@ function startPackager() {
   var packager = require('electron-packager')
   var out = path.join(__dirname, 'build');
   packager({
-    icon: platformIcon,
     dir: __dirname,
     out: out,
     platform: os.platform(),
     arch: 'all',
-    'osx-sign': true,
+
     name: manifest.name,
+    icon: platformIcon,
     'app-version': manifest.version,
+    'build-version': manifest.version,
+    'app-copyright': 'Copyright ' + (manifest.author || manifest.name),
     overwrite: true,
+
+    // windows file details (needed for shortcut and stuff)
     win32metadata: {
       CompanyName: manifest.author || manifest.name,
       FileDescription: manifest.name,
       ProductName: manifest.name,
       InternalName: manifest.name,
     },
+
+    // mac signing and url handler
+    'osx-sign': true,
+    protocols: [
+      {
+        name: manifest.name,
+        schemes: [ `ec-${appId}` ]
+      }
+    ],
+
     // all: true,
     afterCopy: [function(buildPath, electronVersion, platform, arch, callback) {
       var ncp = require('ncp').ncp;
@@ -136,23 +152,30 @@ function startPackager() {
       });
     }]
   }, function (err, appPaths) {
+    function makeMacZip(appPath) {
+      var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-mac.zip`, `${manifest.name}.app`], {
+        cwd: appPath,
+      });
+      child.stdout.pipe(process.stdout);
+      child.on('exit', function() {
+        console.log('zip complete');
+      })
+    }
+
     appPaths
     .filter(appPath => appPath.indexOf('darwin') != -1)
     .forEach(appPath => {
+      console.log(appPath);
+      /*
       var infoPlist = path.join(appPath, manifest.name + '.app', 'Contents', 'Info.plist');
       console.log(infoPlist);
       var child = require('child_process').exec(`defaults write ${infoPlist} CFBundleURLTypes '<array><dict><key>CFBundleURLName</key><string>${manifest.name}</string><key>CFBundleURLSchemes</key><array><string>ec-${appId}</string></array></dict></array>'`)
       child.stdout.pipe(process.stdout);
       child.on('exit', function() {
-        console.log(appPath);
-        var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-mac.zip`, `${manifest.name}.app`], {
-          cwd: appPath,
-        });
-        child.stdout.pipe(process.stdout);
-        child.on('exit', function() {
-          console.log('zip complete');
-        })
+        makeMacZip();
       })
+      */
+      makeMacZip(appPath);
     })
 
     appPaths
