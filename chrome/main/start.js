@@ -368,7 +368,9 @@ app.on('ready', function() {
       ]}
   ];
 
-  // Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  if (process.platform == 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  }
 
   Promise.all([
     calculateId(),
