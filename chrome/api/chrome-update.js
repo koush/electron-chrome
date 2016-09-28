@@ -98,7 +98,7 @@ var deleteRecursive = function(inPath) {
   catch (ignore) {
   }
 
-  if (fs.existsSync(inPath)) {
+  if (fs.existsSync(inPath) && fs.lstatSync(inPath).isDirectory()) {
     fs.readdirSync(inPath).forEach(function(file,index) {
       var curPath = path.join(inPath, file);
       deleteRecursive(curPath);
