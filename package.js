@@ -6,7 +6,28 @@ const mkdirp = require('mkdirp');
 const os = require('os');
 const electronInstaller = require('electron-winstaller');
 
-// const createDMG = require('electron-installer-dmg')
+var deleteRecursive = function(inPath) {
+  if (!fs.lstatSync(inPath).isDirectory()) {
+    try {
+      fs.unlinkSync(inPath);
+    }
+    catch (ignore) {
+    }
+    return;
+  }
+
+  if (fs.existsSync(inPath)) {
+    fs.readdirSync(inPath).forEach(function(file,index) {
+      var curPath = path.join(inPath, file);
+      deleteRecursive(curPath);
+    });
+    fs.rmdirSync(inPath);
+  }
+};
+
+const buildPath = path.join(__dirname, 'build');
+deleteRecursive(buildPath);
+mkdirp.sync(buildPath);
 
 var appDir;
 var appId;

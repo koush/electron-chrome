@@ -91,11 +91,12 @@ function downloadLatestVersion(id) {
 }
 
 var deleteRecursive = function(inPath) {
-  if (!fs.existsSync(inPath))
-    return;
-
   if (!fs.lstatSync(inPath).isDirectory()) {
-    fs.unlinkSync(inPath);
+    try {
+      fs.unlinkSync(inPath);
+    }
+    catch (ignore) {
+    }
     return;
   }
 
