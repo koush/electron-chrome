@@ -50,7 +50,7 @@ function handleLaunchUrl(url) {
   console.log('custom url', url);
 }
 
-if (manifest.url_handlers) {
+if (manifest && manifest.url_handlers) {
   const p = `ec-${appId}`;
   app.setAsDefaultProtocolClient(p);
   app.on('open-url', function(event, url) {
