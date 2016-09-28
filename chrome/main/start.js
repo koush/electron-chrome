@@ -354,6 +354,10 @@ app.on('ready', function() {
       submenu: [
           { label: "About Application", selector: "orderFrontStandardAboutPanel:" },
           { type: "separator" },
+          { label: "Reset Application", click: function() {
+            if (global.chrome)
+              global.chrome.runtime.reset();
+          }},
           { label: "Quit", accelerator: "Command+Q", click: function() { app.quit(); }}
       ]}, {
       label: "Edit",

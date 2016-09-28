@@ -9,6 +9,7 @@ const AdmZip = require('adm-zip');
 const compareChromeVersions = require('../main/chrome-app-version.js').compare;
 
 function getCrxDir(id) {
+  id = id || '';
   return path.join(app.getPath('userData'), 'crx', id);
 }
 
@@ -107,6 +108,10 @@ var deleteRecursive = function(inPath) {
   }
 };
 
+function clearCrxDir() {
+  deleteRecursive(getCrxDir());
+}
+
 function extractCrx(crxPath) {
   if (!crxPath)
     return null;
@@ -161,6 +166,7 @@ function unpackLatestInstalledCrx(id) {
   return extractCrx(getLatestInstalledCrx(id));
 }
 
+exports.clearCrxDir = clearCrxDir;
 exports.getLatestVersion = getLatestVersion;
 exports.downloadCrx = downloadCrx;
 exports.extractCrx = extractCrx;

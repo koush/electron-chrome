@@ -62,26 +62,37 @@ if (manifest && manifest.url_handlers) {
   console.log(`launchUrl: ${launchUrl}`);
 }
 
-if (!global.localStorage) {
-  // chrome.storage and windows are backed by localStorage.
-  try {
-    var dataPath = path.join(app.getPath('userData'), `${appId}.json`);
-    var localStorageData = JSON.parse(fs.readFileSync(dataPath));
-  }
-  catch (e) {
-    localStorageData = {};
-  }
+(function() {
+  if (!global.localStorage) {
+    // chrome.storage and windows are backed by localStorage.
+    try {
+      var dataPath = path.join(app.getPath('userData'), `${appId}.json`);
+      var localStorageData = JSON.parse(fs.readFileSync(dataPath));
+    }
+    catch (e) {
+      localStorageData = {};
+    }
 
-  global.localStorage = {
-    getItem: function(key) {
-      return localStorageData[key] || null;
-    },
-    setItem: function(key, value) {
-      localStorageData[key] = value;
+    function saveLocalStorageData() {
       fs.writeFileSync(dataPath, JSON.stringify(localStorageData))
     }
+
+
+    global.localStorage = {
+      getItem: function(key) {
+        return localStorageData[key] || null;
+      },
+      setItem: function(key, value) {
+        localStorageData[key] = value;
+        saveLocalStorageData();
+      },
+      clear: function() {
+        localStorageData = {};
+        saveLocalStorageData();
+      }
+    }
   }
-}
+})();
 console.log('chrome runtime started');
 
 const {
@@ -171,6 +182,11 @@ chrome.runtime = {
       chrome.runtime.onUpdateAvailable.invokeListeners(null, [details])
       cb('update_available', details);
     })
+  },
+  reset: function() {
+    localStorage.clear();
+    chromeAppUpdater.clearCrxDir();
+    chrome.runtime.reload();
   },
   reload: function() {
     var hadWindows;
