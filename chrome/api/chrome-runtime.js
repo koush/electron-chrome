@@ -3,7 +3,7 @@ console.log('runtime started');
 const path = require('path');
 const {electron, remote} = require('./electron-remote.js')
 const {shell} = require('electron');
-const {BrowserWindow, app, protocol} = electron;
+const {BrowserWindow, app, protocol, autoUpdater} = electron;
 const fs = require('fs');
 const os = require('os');
 
@@ -233,6 +233,14 @@ function updateChecker() {
   else {
     console.log('checking for updates to chrome app', appId);
     promise = ensureLatestCrx(appId, manifest.version);
+  }
+
+  try {
+    autoUpdater.checkForUpdates();
+  }
+  catch (e) {
+    // ignore it, may not exist, code signature issue during dev, etc.
+    console.error(e);
   }
 
   updatePromise = promise.then(function(version) {
