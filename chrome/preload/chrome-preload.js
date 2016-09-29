@@ -163,6 +163,7 @@ chrome.syncFileSystem.requestFileSystem = function(cb) {
       selfBrowserWindow.webContents.openDevTools({mode: 'detach'})
   }}))
   menu.append(new MenuItem({label: 'Inspect Background Page', click() { chrome.app.window.get('__background').w.webContents.openDevTools({mode: 'detach'}) }}))
+  menu.append(new MenuItem({label: 'Inspect Runtime Page', click() { remote.getGlobal('chromeRuntimeWindow').webContents.openDevTools({mode: 'detach'}) }}))
 
   window.addEventListener('contextmenu', (e) => {
     e.preventDefault()
