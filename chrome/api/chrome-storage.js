@@ -39,5 +39,29 @@ storage.local = {
     }
 
     cb(ret);
+  },
+
+  getBytesInUse: function(keys, cb) {
+    if (cb)
+      cb(0);
+  },
+
+  remove: function(keys, cb) {
+    if (typeof keys == 'string')
+      keys = [keys];
+
+    for (var key of keys) {
+      localStorage.removeItem(key);
+    }
+
+    if (cb)
+      cb();
+  },
+
+  clear: function(cb) {
+    // uhhh this clears window-settings. and other stuff. should probably not do that.
+    localStorage.clear();
+    if (cb)
+      cb();
   }
 };
