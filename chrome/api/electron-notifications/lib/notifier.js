@@ -8,9 +8,6 @@ class Notifier {
     } else {
       this.BrowserWindow = electron.BrowserWindow
     }
-    this.interval = setInterval(() => {
-      this.tick()
-    }, 100)
   }
 
   notify (title, data) {
@@ -38,10 +35,11 @@ class Notifier {
       show: false
     })
     this.queue.push({ notificationWindow, title, options })
+    this.maybeShowNotification();
     return notificationWindow
   }
 
-  tick () {
+  maybeShowNotification () {
     if (this.active || this.queue.length === 0) return
 
     this.active = true
@@ -59,7 +57,7 @@ class Notifier {
 
     const timeout = setTimeout(() => {
       notificationWindow.close()
-    }, 4000)
+    }, options.duration || 4000)
 
     const currentWindow = electron.remote && electron.remote.getCurrentWindow()
     if (currentWindow) {
@@ -75,6 +73,7 @@ class Notifier {
       this.active = false
       clearTimeout(timeout)
       notificationWindow = null
+      this.maybeShowNotification();
     })
   }
 }

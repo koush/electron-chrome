@@ -151,3 +151,10 @@ html, body {
   background: #147EFB;
   color: #fff;
 }
+.flat, .flat:before,
+#notification.flat, #notification.flat:before,
+#notification #buttons.flat, #notification #buttons.flat:before,
+#notification .icon.flat, #notification .icon.flat:before,
+#notification .message.flat, #notification .message.flat:before  {
+  border-radius: 0px;
+}

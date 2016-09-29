@@ -58,6 +58,14 @@ class NotificationView {
     } else {
       this.element.classList.add('single')
     }
+
+    if (this.options.flat) {
+      this.element.classList.add('flat')
+      this.iconEl.classList.add('flat')
+      this.titleEl.classList.add('flat')
+      this.messageEl.classList.add('flat')
+      this.buttonsEl.classList.add('flat')
+    }
   }
 
   buttons () {

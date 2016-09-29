@@ -20,6 +20,7 @@ notifications.create = function(nid, opts, cb) {
     message: opts.message,
     buttons: buttons,
     vertical: true,
+    flat: true,
   });
 
   openNotifications[nid] = n;
