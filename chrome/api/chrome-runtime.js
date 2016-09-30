@@ -50,16 +50,19 @@ function handleLaunchUrl(url) {
   console.log('custom url', url);
 }
 
-if (manifest && manifest.url_handlers) {
-  const p = `ec-${appId}`;
-  app.setAsDefaultProtocolClient(p);
-  app.on('open-url', function(event, url) {
-    if (event)
-      event.preventDefault();
-    handleLaunchUrl(url);
-  })
+if (manifest) {
+  app.setName(manifest.name);
+  if (manifest.url_handlers) {
+    const p = `ec-${appId}`;
+    app.setAsDefaultProtocolClient(p);
+    app.on('open-url', function(event, url) {
+      if (event)
+        event.preventDefault();
+      handleLaunchUrl(url);
+    })
 
-  console.log(`launchUrl: ${launchUrl}`);
+    console.log(`launchUrl: ${launchUrl}`);
+  }
 }
 
 (function() {
@@ -301,7 +304,7 @@ function createBackground() {
     // bg.loadURL(`file://${appDir}/electron-background.html`)
     var bgUrl;
     if (manifest.app.background.page)
-    bgUrl = `chrome-extension://${chrome.runtime.id}/${manifest.app.background.page}`;
+      bgUrl = `chrome-extension://${chrome.runtime.id}/${manifest.app.background.page}`;
     else
       bgUrl = `chrome-extension://${chrome.runtime.id}/_generated_background_page.html`;
     console.log(`opening ${bgUrl}`)
