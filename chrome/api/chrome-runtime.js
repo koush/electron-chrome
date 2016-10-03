@@ -233,6 +233,7 @@ chrome.contextMenus = require('./chrome-contextmenus.js');
 chrome.system = require('./chrome-system.js');
 chrome.notifications = require('./chrome-notifications.js');
 chrome.storage = require('./chrome-storage');
+chrome.browser = require('./chrome-browser');
 
 function updateChecker() {
   var latest;

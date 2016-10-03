@@ -175,6 +175,10 @@ function startPackager() {
       });
     }]
   }, function (err, appPaths) {
+    if (err) {
+      console.error(err);
+      throw err;
+    }
     function makeMacZip(appPath) {
       var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-mac.zip`, `${manifest.name}.app`], {
         cwd: appPath,
