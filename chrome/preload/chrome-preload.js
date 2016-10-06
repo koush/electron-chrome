@@ -26,6 +26,10 @@ const selfId = selfBrowserWindow.id;
 selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
 selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
 
+ipcRenderer.on('contentWindow', function(e, name) {
+  window[name] = getWindowGlobal(selfId, name);
+});
+
 (function() {
   var currentWindowGlobals = getWindowGlobals(selfBrowserWindow.id);
   for (var k in currentWindowGlobals) {
@@ -39,10 +43,6 @@ window.onload = function() {
   if (l)
     l();
 }
-
-ipcRenderer.on('contentWindow', function(e, name) {
-  window[name] = getWindowGlobal(selfId, name);
-})
 
 chrome = remote.getGlobal('chrome');
 function deepCopy(o, t) {
