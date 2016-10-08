@@ -101,9 +101,13 @@ function passthroughPrototype(n) {
 }
 
 // allow these AppWindow calls to go directly to the BrowserWindow
-var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized', 'focus'];
+var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMinimized', 'isMaximized', 'focus'];
 for (var p of passthroughs) {
   passthroughPrototype(p);
+}
+
+AppWindow.prototype.isFullscreen = function() {
+  return this.w.isFullScreen();
 }
 
 AppWindow.prototype.restore = function() {
