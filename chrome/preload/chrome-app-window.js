@@ -23,6 +23,17 @@ function AppWindow(w) {
   if (!this.id)
     console.error('window id null?')
 
+  this.onFullscreened = makeEvent();
+  this.onMinimized = makeEvent();
+  this.onMaximized = makeEvent();
+  this.onRestored = makeEvent();
+  this.onClosed = makeEvent();
+
+  safeRegister(selfBrowserWindow, w, this.onMinimized.invokeListeners, 'minimize');
+  safeRegister(selfBrowserWindow, w, this.onMaximized.invokeListeners, 'maximize');
+  safeRegister(selfBrowserWindow, w, this.onRestored.invokeListeners, 'restore');
+  safeRegister(selfBrowserWindow, w, this.onFullscreened.invokeListeners, 'enter-full-screen');
+
   var closed;
   safeRegister(selfBrowserWindow, w, function() {
     closed = true;
@@ -43,9 +54,6 @@ function AppWindow(w) {
       return value;
     }
   });
-
-  this.onFullscreened = makeEvent();
-  this.onClosed = makeEvent();
 
 
   this.innerBounds = {
@@ -96,6 +104,15 @@ function passthroughPrototype(n) {
 var passthroughs = ['setAlwaysOnTop', 'show', 'hide', 'close', 'isMaximized', 'focus'];
 for (var p of passthroughs) {
   passthroughPrototype(p);
+}
+
+AppWindow.prototype.restore = function() {
+  if (this.w.isMaximized())
+    this.w.unmaximize();
+  else if (this.w.isMinimized())
+    this.w.restore();
+  else if (this.w.isFullScreen())
+    this.w.setFullScreen(false);
 }
 
 function getAppWindowForNativeId(id) {
