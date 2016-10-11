@@ -145,9 +145,13 @@ chrome.storage.local.get = function(k, cb) {
 var chromeRequestSyncFileSystem = chrome.syncFileSystem.requestFileSystem;
 
 chrome.syncFileSystem.requestFileSystem = function(cb) {
-  chromeRequestSyncFileSystem(errorWrappedCallback(cb));
+  // chromeRequestSyncFileSystem(errorWrappedCallback(cb));
+  navigator.webkitPersistentStorage.requestQuota(10 * 1024 * 1024, function(granted) {
+    webkitRequestFileSystem(window.PERSISTENT, granted, cb, errorWrappedCallback(cb));
+  })
 };
 
+chrome.fileSystem.requestFileSystem = chrome.syncFileSystem.requestFileSystem;
 
 (function() {
   let rightClickPosition = null

@@ -300,6 +300,8 @@ function calculateId() {
   return require('./chrome-app-id.js').calculateId(global.chromeManifest.key);
 }
 
+protocol.registerStandardSchemes(['chrome-extension']);
+
 function registerProtocol() {
   return new Promise((resolve, reject) => {
     protocol.unregisterProtocol('chrome-extension', function() {

@@ -221,9 +221,9 @@ chrome.runtime = {
 chrome.app = require('./chrome-app.js');
 
 chrome.syncFileSystem = {
-  requestFileSystem: function(cb) {
-    cb('not implemented');
-  }
+}
+
+chrome.fileSystem = {
 }
 
 const identity = require('./chrome-identity');
