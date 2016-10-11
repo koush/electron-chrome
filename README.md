@@ -35,10 +35,6 @@ I want to continue distributing Chrome apps (Vysor) on the Chrome store (which w
 Having to build and distribute a 100MB+ Electron binary per platform, per app update is not ideal. So runtime and app updates will be decoupled from the Electron update, and from each other. Ideally, the updates to Chrome apps running on electron-chrome
 are just the CRX that you get from the Chrome store, or the handful of runtime files which polyfill the chrome.* API.
 
-Main thing that is missing is chrome.fileSystem. That's an easy fix once this bug is merged (1.3.5 I think?):
-
-https://github.com/electron/electron/issues/6949
-
 ##### Mostly implemented:
 
 chrome.identity
