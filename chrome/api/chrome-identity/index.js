@@ -5,6 +5,7 @@ const {shell} = require('electron');
 const path = require('path');
 
 const {
+  makeEvent,
   safeRegister,
 } = require('../../main/global.js');
 
@@ -56,6 +57,9 @@ function getQueryVariable(variable, url) {
 }
 
 function exchangeCodeForToken(code, redirect_uri) {
+  if (!code)
+    return Promise.reject('code not provided');
+
   var params = {
       code: code,
       client_id: manifest.oauth2.client_id,
@@ -160,6 +164,8 @@ function getProfileUserInfo(token) {
 const uriOutOfBrowser = 'urn:ietf:wg:oauth:2.0:oob';
 var cachedProfileUserInfo;
 var identity = {
+  onSignInChanged: makeEvent(),
+
   getProfileUserInfo: function(cb) {
     if (cachedProfileUserInfo) {
       cb(null, cachedProfileUserInfo);
@@ -210,9 +216,15 @@ var identity = {
       var encodedUrl = encodeURIComponent(url);
       w.loadURL(`file://${__dirname}/chrome-identity.html?url=${encodedUrl}`);
       // w.webContents.openDevTools({mode: 'detach'});
+      var gotCode;
       safeRegister(remote.getCurrentWindow(), w.webContents, function(code) {
+        gotCode = true;
         cb(code);
       }, 'code');
+      safeRegister(remote.getCurrentWindow(), w.webContents, function(code) {
+        if (!gotCode)
+          cb();
+      }, 'close');
     }
   },
   getAuthToken: function(opts, cb) {
@@ -269,6 +281,7 @@ var identity = {
     .then(function(json) {
       saveToken(key, json);
       cb(null, json.access_token);
+      identity.onSignInChanged.invokeListeners();
     })
     .catch(function(s) {
       cb(s);

@@ -176,10 +176,18 @@ chrome.fileSystem.requestFileSystem = chrome.syncFileSystem.requestFileSystem;
   }, false)
 })();
 
-safeWrapEvent(selfBrowserWindow, chrome.storage.onChanged);
+safeWrapEvent(selfBrowserWindow, chrome.identity.onSignInChanged);
+safeWrapEvent(selfBrowserWindow, chrome.app.runtime.onLaunched);
+
+safeWrapEvent(selfBrowserWindow, chrome.notifications.onClicked);
+safeWrapEvent(selfBrowserWindow, chrome.notifications.onButtonClicked);
+safeWrapEvent(selfBrowserWindow, chrome.notifications.onClosed);
+
 safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessage);
 safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessageExternal);
-safeWrapEvent(selfBrowserWindow, chrome.app.runtime.onLaunched);
+safeWrapEvent(selfBrowserWindow, chrome.runtime.onUpdateAvailable);
+
+safeWrapEvent(selfBrowserWindow, chrome.storage.onChanged);
 
 const {AppWindow, getChromeAppWindow, selfWindow} = require('./chrome-app-window.js');
 window.sharedGlobals = selfWindow.contentWindow;
