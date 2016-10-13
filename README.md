@@ -16,16 +16,11 @@ electron --enable-logging . --app-dir=/path/to/chrome-app/
 ```
 
 Or run directly from the chrome store, by providing a chrome store app id.
-This will also download updates as they become available.
+This will also download updates as they become available. For example, to run [Vysor](https://chrome.google.com/webstore/detail/vysor/gidgenkbbabolejbgbpnhbimgjbffefm) from the Chrome store:
 
 ```
 electron --enable-logging . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm
 ```
-
-A lot of stuff is implemented. Enough to run Vysor (as shown in example above):
-https://chrome.google.com/webstore/detail/vysor/gidgenkbbabolejbgbpnhbimgjbffefm
-
-
 
 ### Goals
 Chrome apps are being phased out on all platforms but ChromeOS.
