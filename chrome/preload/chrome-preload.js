@@ -154,7 +154,8 @@ chrome.syncFileSystem.requestFileSystem = function(cb) {
 chrome.fileSystem.requestFileSystem = chrome.syncFileSystem.requestFileSystem;
 
 (function() {
-  let rightClickPosition = null
+  let rightClickPosition = null;
+  var chromeIsRelease = remote.getGlobal('chromeIsRelease');
 
   const menu = new Menu()
   menu.append(new MenuItem({label: 'Reload App', click() { chrome.runtime.reload() }}))
@@ -169,7 +170,20 @@ chrome.fileSystem.requestFileSystem = chrome.syncFileSystem.requestFileSystem;
   menu.append(new MenuItem({label: 'Inspect Background Page', click() { chrome.app.window.get('__background').w.webContents.openDevTools({mode: 'detach'}) }}))
   menu.append(new MenuItem({label: 'Inspect Runtime Page', click() { remote.getGlobal('chromeRuntimeWindow').webContents.openDevTools({mode: 'detach'}) }}))
 
+  var rapidClickCount = 0;
+  var lastRapidClick = 0;
   window.addEventListener('contextmenu', (e) => {
+    if (chromeIsRelease) {
+      var now = Date.now();
+      if (now > lastRapidClick + 1000) {
+        rapidClickCount = 0;
+        lastRapidClick = now;
+        return;
+      }
+      if (++rapidClickCount < 3)
+        return;
+      chromeIsRelease = true;
+    }
     e.preventDefault()
     rightClickPosition = {x: e.x, y: e.y}
     menu.popup(remote.getCurrentWindow())

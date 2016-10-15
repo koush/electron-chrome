@@ -22,6 +22,7 @@ global.chrome = null;
 global.chromeManifest = null;
 global.chromeAppId = null;
 global.chromeAppDir = null;
+global.chromeIsRelease = false;
 
 // a comment
 var shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
@@ -99,6 +100,7 @@ if (shouldQuit) {
     var embeddedPath = path.join(app.getAppPath(), 'unpacked-crx');
     if (fs.existsSync(embeddedPath)) {
       global.chromeAppDir = embeddedPath;
+      global.chromeIsRelease = true;
       console.log(`embedded ${global.chromeAppDir} found`);
     }
   }
