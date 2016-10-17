@@ -399,6 +399,7 @@ global.wantsActivate = true;
 app.on('window-all-closed', () => {
   console.log('window-all-closed');
   if (isReloading) {
+    console.log('relaunching...');
     var args = process.argv.slice(1).filter(s => s != '--silent')
     if (!wantsActivate)
       args.push('--silent');

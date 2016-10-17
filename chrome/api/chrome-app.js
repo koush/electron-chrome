@@ -1,4 +1,5 @@
 const path = require('path');
+const os = require('os');
 const {electron, remote} = require('./electron-remote.js')
 const {BrowserWindow, app, protocol, nativeImage} = electron;
 const {throttleTimeout} = require('./util.js');
@@ -38,6 +39,20 @@ const windowMappings = {
 function updateWindowMappings() {
   setGlobal('windowMappings', windowMappings);
 }
+
+var hadWindows;
+var windowMonitor = setInterval(function() {
+  var hasWindows = Object.keys(windowMappings.chromeToElectron).filter(key => key != '__background').length;
+  console.log(`window monitor hasWindows ${hasWindows}`)
+
+  if (!hasWindows && !hadWindows) {
+    if (os.platform() !== 'darwin') {
+      chrome.runtime.shutdown();
+    }
+  }
+
+  hadWindows = hasWindows;
+}, 10000);
 
 const windows = {};
 const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');

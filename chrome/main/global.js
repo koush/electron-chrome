@@ -97,6 +97,18 @@ function preventBrowserWindow(w) {
   })
 }
 
+function shutdownEverything() {
+  const {BrowserWindow} = require('electron');
+  function killer() {
+    console.log('killing all windows for shutdown');
+    for (var w of BrowserWindow.getAllWindows()) {
+      w.close();
+    }
+  }
+  setInterval(killer, 1000);
+  killer();
+}
+
 exports.setGlobal = setGlobal;
 exports.setWindowGlobal = setWindowGlobal;
 exports.createWindowGlobals = createWindowGlobals;
@@ -111,6 +123,8 @@ exports.autoUnregister = autoUnregister;
 exports.safeCallback = safeCallback;
 
 exports.preventBrowserWindow = preventBrowserWindow;
+
+exports.shutdownEverything = shutdownEverything;
 
 // variables
 exports.windowGlobals = {};

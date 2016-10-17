@@ -108,6 +108,7 @@ const {
   deleteWindowGlobals,
   getWindowGlobal,
   getWindowGlobals,
+  shutdownEverything,
 } = require('../main/global.js');
 
 
@@ -191,7 +192,7 @@ chrome.runtime = {
     chromeAppUpdater.clearCrxDir();
     chrome.runtime.reload();
   },
-  reload: function() {
+  shutdown: function() {
     var hadWindows;
     const background = chrome.app.window.get('__background');
     var backgroundId = background && background.id;
@@ -203,11 +204,12 @@ chrome.runtime = {
         w.close();
       }
     }
-    setGlobal('isReloading', true);
     setGlobal('wantsActivate', hadWindows);
-    setTimeout(function() {
-      selfWindow.close();
-    }, 200)
+    setTimeout(shutdownEverything, 200)
+  },
+  reload: function() {
+    chrome.runtime.shutdown();
+    setGlobal('isReloading', true);
   },
   getPlatformInfo: function(cb) {
     cb({
