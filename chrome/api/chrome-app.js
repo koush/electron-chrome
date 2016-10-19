@@ -43,7 +43,6 @@ function updateWindowMappings() {
 var hadWindows;
 var windowMonitor = setInterval(function() {
   var hasWindows = Object.keys(windowMappings.chromeToElectron).filter(key => key != '__background').length;
-  console.log(`window monitor hasWindows ${hasWindows}`)
 
   if (!hasWindows && !hadWindows) {
     if (os.platform() !== 'darwin') {
@@ -56,6 +55,10 @@ var windowMonitor = setInterval(function() {
 
 const windows = {};
 const preloadPath = path.join(__dirname, '..', 'preload', 'chrome-preload.js');
+
+exports.window.canSetVisibleOnAllWorkspaces = function() {
+  return false;
+}
 
 // will be overwritten by preload script, as rpc can't do return values
 exports.window.get = function(id) {

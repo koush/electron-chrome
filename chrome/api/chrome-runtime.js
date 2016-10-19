@@ -158,8 +158,13 @@ function ensureLatestCrx(appId, currentVersion) {
 
 var updatePromise;
 
+chrome.alarms = require('./chrome-alarms.js');
+chrome.idle = require('./chrome-idle.js');
+
 chrome.runtime = {
   id: appId,
+  onInstalled: makeEvent(),
+  onStartup: makeEvent(),
   onMessage: makeEvent(),
   onMessageExternal: makeEvent(),
   sendMessage: function() {
@@ -294,6 +299,8 @@ function createBackground() {
   }, function(bg, created, windowSettings) {
     setWindowGlobal(bg.id, 'onload', function() {
       console.log('background onload')
+      chrome.runtime.onStartup.invokeListeners();
+
       if (remote.getGlobal('wantsActivate'))
         app.emit('activate');
 

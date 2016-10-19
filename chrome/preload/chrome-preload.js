@@ -58,6 +58,12 @@ function deepCopy(o, t) {
 
 chrome = deepCopy(chrome, {});
 
+chrome.i18n = {
+  getMessage: function(key) {
+    return key;
+  }
+}
+
 chrome.desktopCapture = require('./chrome-desktopcapture.js');
 
 function unremote(v) {
@@ -197,6 +203,11 @@ safeWrapEvent(selfBrowserWindow, chrome.notifications.onClicked);
 safeWrapEvent(selfBrowserWindow, chrome.notifications.onButtonClicked);
 safeWrapEvent(selfBrowserWindow, chrome.notifications.onClosed);
 
+safeWrapEvent(selfBrowserWindow, chrome.idle.onStateChanged);
+safeWrapEvent(selfBrowserWindow, chrome.alarms.onAlarm);
+
+safeWrapEvent(selfBrowserWindow, chrome.runtime.onInstalled);
+safeWrapEvent(selfBrowserWindow, chrome.runtime.onStartup);
 safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessage);
 safeWrapEvent(selfBrowserWindow, chrome.runtime.onMessageExternal);
 safeWrapEvent(selfBrowserWindow, chrome.runtime.onUpdateAvailable);

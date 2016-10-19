@@ -28,6 +28,7 @@ function AppWindow(w) {
   this.onMaximized = makeEvent();
   this.onRestored = makeEvent();
   this.onClosed = makeEvent();
+  this.onBoundsChanged = makeEvent();
 
   safeRegister(selfBrowserWindow, w, this.onMinimized.invokeListeners, 'minimize');
   safeRegister(selfBrowserWindow, w, this.onMaximized.invokeListeners, 'maximize');
@@ -151,7 +152,7 @@ function getChromeAppWindow(chromeAppWindow) {
       })
       w.loadURL(`chrome-extension://${chrome.runtime.id}/${page}`);
       // this needs to happen only after the load.
-      console.log(settings);
+      // console.log(settings);
       if (settings.isDevToolsOpened)
         w.webContents.openDevTools({mode: 'detach'});
     });
