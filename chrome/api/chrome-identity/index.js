@@ -177,11 +177,22 @@ var identity = {
       return getProfileUserInfo(json.access_token);
     })
     .then(function(json) {
+      // save to local storage cache for offline startup
+      localStorage.setItem('_auth_cached_getProfileUserInfo', JSON.stringify(json))
       cachedProfileUserInfo = json;
       cb(null, json)
     })
     .catch(function(s) {
-      cb(s);
+      try {
+        // try to get something from the local storage cache
+        var cached = localStorage.getItem('_auth_cached_getProfileUserInfo');
+        if (cached == null)
+          throw new Error();
+        cb(null, JSON.parse(cached));
+      }
+      catch (e) {
+        cb(s);
+      }
     });
   },
   getRedirectURL: function(path) {
@@ -226,6 +237,17 @@ var identity = {
           cb();
       }, 'close');
     }
+  },
+  removeCachedAuthToken: function(details, cb) {
+    if (!details || !details.token)
+      return;
+    for (var k in localStorage) {
+      if (k.startsWith('__auth') && localStorage.getItem(k) == details.token) {
+        localStorage.removeItem(k);
+      }
+    }
+    if (cb)
+      cb();
   },
   getAuthToken: function(opts, cb) {
     if (!manifest.oauth2 || !manifest.oauth2.scopes || !manifest.oauth2.client_id) {
