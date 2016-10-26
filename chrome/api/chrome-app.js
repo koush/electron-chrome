@@ -3,6 +3,7 @@ const os = require('os');
 const {electron, remote} = require('./electron-remote.js')
 const {BrowserWindow, app, protocol, nativeImage} = electron;
 const {throttleTimeout} = require('./util.js');
+const {screen} = require('electron');
 const {
   makeEvent,
   safeRegister,
@@ -76,7 +77,24 @@ exports.window.create = function(options, cb) {
   }
 
   var windowSettings = loadWindowSettings(id);
-  var contentBounds = windowSettings.contentBounds || {};
+  var contentBounds = {};
+  if (windowSettings.size && windowSettings.position) {
+    contentBounds.width = windowSettings.size[0];
+    contentBounds.height = windowSettings.size[1];
+    contentBounds.x = windowSettings.position[0];
+    contentBounds.y = windowSettings.position[1];
+
+    // santize
+    var display = screen.getDisplayMatching(contentBounds);
+    var {workArea} = display;
+    if (contentBounds.x < workArea.x
+      || contentBounds.y < workArea.y
+      || contentBounds.x + contentBounds.width > workArea.x + workArea.width
+      || contentBounds.y + contentBounds.height > workArea.y + workArea.height) {
+      contentBounds = {};
+    }
+  }
+
   var frameless = options.frame && options.frame.type == 'none';
   var options = options.innerBounds || {};
 
@@ -125,7 +143,8 @@ exports.window.create = function(options, cb) {
   function save() {
     saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
       var data = {
-        contentBounds: w.getContentBounds(),
+        position: w.getPosition(),
+        size: w.getSize(),
         isDevToolsOpened: w.webContents.isDevToolsOpened()
       }
       localStorage.setItem('window-settings-' + id, JSON.stringify(data));
