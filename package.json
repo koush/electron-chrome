@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "electron-packager": "^8.0.0",
-    "electron-prebuilt": "^1.4.3",
+    "electron-prebuilt": "^1.4.4",
     "electron-winstaller": "^2.3.4"
   }
 }
