@@ -100,11 +100,20 @@ var deleteRecursive = function(inPath) {
   }
 
   if (fs.existsSync(inPath) && fs.lstatSync(inPath).isDirectory()) {
-    fs.readdirSync(inPath).forEach(function(file,index) {
-      var curPath = path.join(inPath, file);
-      deleteRecursive(curPath);
-    });
-    fs.rmdirSync(inPath);
+    try {
+      fs.readdirSync(inPath).forEach(function(file,index) {
+        var curPath = path.join(inPath, file);
+        deleteRecursive(curPath);
+      });
+    }
+    catch (ignore) {
+    }
+
+    try {
+      fs.rmdirSync(inPath);
+    }
+    catch (ignore) {
+    }
   }
 };
 
@@ -148,7 +157,7 @@ function extractCrx(crxPath) {
   }
 }
 
-function getLatestInstalledCrx(id) {
+function getLatestInstalledCrx(id, purge) {
   var dir = getCrxDir(id);
   if (!fs.existsSync(dir))
     return null;
@@ -157,13 +166,33 @@ function getLatestInstalledCrx(id) {
   .sort(compareChromeVersions);
   if (!crxs.length)
     return null;
-  return path.join(dir, crxs.pop());
+  var ret = crxs.pop();
+  if (purge) {
+    var clear = fs.readdirSync(dir)
+    .filter(s => s.indexOf(ret) == -1);
+    clear.forEach(function(extra, index) {
+      console.log(`deleting ${extra}`);
+      var del = path.join(dir, extra);
+      deleteRecursive(del);
+      try {
+        // if the old path can't be deleted for whatever reason (running binary),
+        // just rename it so the directory can be used.
+        // there was a bug in vysor where reset + upgrade failed because
+        // an adb binary was sticking around daemonized.
+        var random = Math.round(Math.random() * (1 << 30)).toString(16);
+        fs.renameSync(del, path.join(dir, 'failed-delete-' + random));
+      }
+      catch (ignored) {
+      }
+    });
+  }
+  return path.join(dir, ret);
 }
 
-function unpackLatestInstalledCrx(id) {
+function unpackLatestInstalledCrx(id, purge) {
   // happily throw up errors
   // let the caller handle them and download the app again, etc.
-  return extractCrx(getLatestInstalledCrx(id));
+  return extractCrx(getLatestInstalledCrx(id, purge));
 }
 
 exports.clearCrxDir = clearCrxDir;

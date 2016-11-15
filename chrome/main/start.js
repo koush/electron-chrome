@@ -121,7 +121,7 @@ if (shouldQuit) {
 
   if (global.chromeAppId) {
     try {
-      var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId);
+      var result = require('../api/chrome-update.js').unpackLatestInstalledCrx(global.chromeAppId, true);
       if (result) {
         if (!global.chromeManifest || isChromeAppUpgrade(global.chromeManifest.version, result.manifest.version)) {
           global.chromeManifest = result.manifest;
