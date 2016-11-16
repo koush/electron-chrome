@@ -77,21 +77,21 @@ exports.window.create = function(options, cb) {
   }
 
   var windowSettings = loadWindowSettings(id);
-  var contentBounds = {};
+  var windowBounds = {};
   if (windowSettings.size && windowSettings.position) {
-    contentBounds.width = windowSettings.size[0];
-    contentBounds.height = windowSettings.size[1];
-    contentBounds.x = windowSettings.position[0];
-    contentBounds.y = windowSettings.position[1];
+    windowBounds.width = windowSettings.size[0];
+    windowBounds.height = windowSettings.size[1];
+    windowBounds.x = windowSettings.position[0];
+    windowBounds.y = windowSettings.position[1];
 
     // santize
-    var display = screen.getDisplayMatching(contentBounds);
+    var display = screen.getDisplayMatching(windowBounds);
     var {workArea} = display;
-    if (contentBounds.x < workArea.x
-      || contentBounds.y < workArea.y
-      || contentBounds.x + contentBounds.width > workArea.x + workArea.width
-      || contentBounds.y + contentBounds.height > workArea.y + workArea.height) {
-      contentBounds = {};
+    if (windowBounds.x < workArea.x
+      || windowBounds.y < workArea.y
+      || windowBounds.x + windowBounds.width > workArea.x + workArea.width
+      || windowBounds.y + windowBounds.height > workArea.y + workArea.height) {
+      windowBounds = {};
     }
   }
 
@@ -106,11 +106,12 @@ exports.window.create = function(options, cb) {
   var copyProps = ['x', 'y', 'width', 'height', 'minWidth', 'minHeight'];
   for (var i in copyProps) {
     i = copyProps[i];
-    opts[i] = contentBounds[i] || options[i];
+    opts[i] = windowBounds[i];
+    if (opts[i] === null || opts[i] === undefined)
+      opts[i] = options[i];
   }
 
   console.log('creating window', id);
-  opts.useContentSize = true;
   opts.webPreferences = {
     plugins: true,
     preload: preloadPath,
