@@ -76,9 +76,10 @@ function withAppId() {
   // grab largest
   var key = Object.keys(manifest.icons).sort((a,b) => parseInt(a) < parseInt(b))[0].toString();
   var icon = path.join(appDir, manifest.icons[key]);
-  var child = require('child_process').exec(`icon.sh ${icon}`)
+  var child = require('child_process').exec(`./icon.sh ${icon}`);
   child.stdout.pipe(process.stdout)
   child.on('exit', function() {
+    console.log('icon creation done')
     startPackager();
   })
 }
@@ -102,9 +103,9 @@ function startPackager() {
 
     name: manifest.name,
     icon: platformIcon,
-    'app-version': manifest.version,
-    'build-version': manifest.version,
-    'app-copyright': 'Copyright ' + (manifest.author || manifest.name),
+    appVersion: manifest.version,
+    buildVersion: manifest.version,
+    appCopyright: 'Copyright ' + (manifest.author || manifest.name),
     overwrite: true,
 
     // windows file details (needed for shortcut and stuff)
@@ -116,7 +117,7 @@ function startPackager() {
     },
 
     // mac signing and url handler
-    'osx-sign': true,
+    osxSign: true,
     protocols: [
       {
         name: manifest.name,
