@@ -119,6 +119,7 @@ exports.window.create = function(options, cb) {
   }
 
   w = new BrowserWindow(opts);
+  w.setMenu(null);
 
   preventBrowserWindow(w);
 
