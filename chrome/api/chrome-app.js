@@ -99,6 +99,7 @@ exports.window.create = function(options, cb) {
   var options = options.innerBounds || {};
 
   var opts = {
+    useContentSize: true,
     show: false,
     frame: !frameless,
     icon: appIcon,
@@ -145,7 +146,7 @@ exports.window.create = function(options, cb) {
     saveThrottle = throttleTimeout(saveThrottle, null, 1000, function() {
       var data = {
         position: w.getPosition(),
-        size: w.getSize(),
+        size: w.getContentSize(),
         isDevToolsOpened: w.webContents.isDevToolsOpened()
       }
       localStorage.setItem('window-settings-' + id, JSON.stringify(data));
