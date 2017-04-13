@@ -15,7 +15,3 @@ sips -z 512 512   $1 --out MyIcon.iconset/icon_512x512.png
 sips -z 1024 1024   $1 --out MyIcon.iconset/icon_512x512@2x.png
 iconutil -c icns MyIcon.iconset
 # rm -R MyIcon.iconset
-
-# Windows
-# convert $1 MyIcon.ico
-convert $1 -define icon:auto-resize=256,128,64,48,32,16 MyIcon.ico
