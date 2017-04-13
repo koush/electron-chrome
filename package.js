@@ -36,13 +36,13 @@ for (var arg of process.argv) {
     appId = arg.substring('--app-id='.length)
   }
   else if (arg.startsWith('--app-dir=')) {
-    appDir = arg.substring('--app-dir='.length)
+    appDir = path.resolve(arg.substring('--app-dir='.length))
   }
   else if (arg.startsWith('--runtime-id=')) {
     runtimeId = arg.substring('--runtime-id='.length)
   }
   else if (arg.startsWith('--assets=')) {
-    assets = arg.substring('--assets='.length)
+    assets = path.resolve(arg.substring('--assets='.length))
   }
 }
 
