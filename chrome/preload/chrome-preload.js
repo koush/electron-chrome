@@ -23,8 +23,10 @@ webFrame.registerURLSchemeAsPrivileged('chrome-extension')
 const selfBrowserWindow = remote.getCurrentWindow();
 const selfId = selfBrowserWindow.id;
 
-selfBrowserWindow.webContents.insertCSS('body { -webkit-user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
-selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
+selfBrowserWindow.webContents.on('did-finish-load', function() {
+  selfBrowserWindow.webContents.insertCSS('body { user-select: none; cursor: default; font-family: "Helvetica Neue", "Lucida Grande", sans-serif; font-size: 75%; }');
+  selfBrowserWindow.webContents.insertCSS('html, body {overflow: hidden;}');
+})
 
 ipcRenderer.on('contentWindow', function(e, name) {
   window[name] = getWindowGlobal(selfId, name);
