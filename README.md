@@ -22,7 +22,7 @@ This will also download updates as they become available. For example, to run [V
 electron --enable-logging . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm
 ```
 
-##### Build Installer (must be run on host platform, Mac and Windows. Linux not supported.):
+##### Build Installer (must be run on host platform, Mac or Windows. Linux not supported.):
 ```
 npm run package -- --app-dir=/path/to/chrome/app/
 ```
