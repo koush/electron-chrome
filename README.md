@@ -22,6 +22,11 @@ This will also download updates as they become available. For example, to run [V
 electron --enable-logging . --app-id=gidgenkbbabolejbgbpnhbimgjbffefm
 ```
 
+Package (must be run on host platform, Mac and Windows. Linux not supported.):
+```
+npm run package -- --app-dir=/path/to/chrome/app/
+```
+
 ### Goals
 Chrome apps are being phased out on all platforms but ChromeOS.
 
