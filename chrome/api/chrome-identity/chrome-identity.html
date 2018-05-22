@@ -65,6 +65,11 @@
 
       jq('#submit').click(function() {
         const self = remote.getCurrentWindow();
+        const code = jq('#code').val();
+        if (code == null || code == '') {
+          jq('#code').attr('placeholder', 'Please click "Sign In With Google" and enter the code.')
+          return;
+        }
         self.webContents.emit('code', jq('#code').val())
         self.close();
       })
