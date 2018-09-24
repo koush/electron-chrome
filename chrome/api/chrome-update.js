@@ -163,7 +163,11 @@ function getLatestInstalledCrx(id, purge) {
     return null;
   var crxs = fs.readdirSync(dir)
   .filter(s => s.endsWith('.crx') && s.startsWith('app-'))
-  .sort(compareChromeVersions);
+  .sort(function(dir1, dir2) {
+    dir1 = dir1.replace('app-', '').replace('.crx', '');
+    dir2 = dir2.replace('app-', '').replace('.crx', '');
+    return compareChromeVersions(dir1, dir2);
+  });
   if (!crxs.length)
     return null;
   var ret = crxs.pop();
