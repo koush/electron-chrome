@@ -1,6 +1,6 @@
 {
   "name": "ElectronChrome",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "electron-main.js",
   "description": "Run Chrome apps on Electron",
   "scripts": {
@@ -8,14 +8,14 @@
     "package": "node package.js"
   },
   "dependencies": {
-    "mkdirp": "",
-    "adm-zip": "",
-    "ncp": "",
-    "electron-squirrel-startup": ""
+    "adm-zip": "^0.4.13",
+    "electron-squirrel-startup": "^1.0.0",
+    "mkdirp": "^0.5.1",
+    "ncp": "^2.0.0"
   },
   "devDependencies": {
     "electron-packager": "^8.0.0",
-    "electron": "2.0.8",
+    "electron": "2.0.14",
     "electron-winstaller": "^2.3.4"
   }
 }
