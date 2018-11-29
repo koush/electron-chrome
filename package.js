@@ -168,6 +168,7 @@ function startPackager() {
         }
         console.log('app copied into place');
         if (!assets) {
+          console.log('no assets');
           callback();
           return;
         }
@@ -190,6 +191,7 @@ function startPackager() {
       });
     }]
   }, function (err, appPaths) {
+    console.log('making zips');
     if (err) {
       console.error(err);
       throw err;

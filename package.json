@@ -1,6 +1,6 @@
 {
   "name": "ElectronChrome",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "electron-main.js",
   "description": "Run Chrome apps on Electron",
   "scripts": {
@@ -14,8 +14,8 @@
     "ncp": "^2.0.0"
   },
   "devDependencies": {
-    "electron-packager": "^8.0.0",
     "electron": "2.0.14",
+    "electron-packager": "12.2.0",
     "electron-winstaller": "^2.3.4"
   }
 }
