@@ -16,7 +16,6 @@ const {
 
 const {Port} = require('./chrome-runtime-port.js');
 
-webFrame.registerURLSchemeAsSecure('chrome-extension')
 webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
 webFrame.registerURLSchemeAsPrivileged('chrome-extension')
 

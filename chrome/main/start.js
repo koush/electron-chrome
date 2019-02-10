@@ -24,29 +24,6 @@ global.chromeAppId = null;
 global.chromeAppDir = null;
 global.chromeIsRelease = false;
 
-// a comment
-var shouldQuit = app.makeSingleInstance((commandLine, workingDirectory) => {
-  if (!global.chrome)
-    return;
-
-  if (commandLine.length == 2 && commandLine[1].startsWith('ec-' + global.chromeAppId + "://")) {
-    app.emit('open-url', null, commandLine[1]);
-  }
-  else {
-    chrome.app.runtime.onLaunched.invokeListeners(null, [{
-      commandLine: commandLine,
-      isKioskSession: false,
-      isPublicSession: false,
-      source: "command_line"
-    }]);
-  }
-});
-
-if (shouldQuit) {
-  app.quit()
-  return;
-}
-
 (function() {
   // app id search search:
   // 0) --app-id argument
@@ -206,6 +183,7 @@ if (shouldQuit) {
 
 
     var host = os.platform();
+    var flag = '';
     for (var nacl_module of global.chromeManifest.nacl_modules) {
       if (!nacl_module.path || !nacl_module.mime_type) {
         console.error('nacl_module must have both path and mime_type keys');
@@ -248,12 +226,14 @@ if (shouldQuit) {
         }
       }
 
-      var flag = ppapiPath + ';' + nacl_module.mime_type;
+      if (flag.length)
+        flag += ',';
+      flag += ppapiPath + ';' + nacl_module.mime_type;
       // console.log('PPAPI path ' +  ppapiPath + ';application/x-ppapi-vysor');
-      console.log('PPAPI path ' + flag);
-      app.commandLine.appendSwitch('register-pepper-plugins', flag);
     }
-  }
+    console.log('PPAPI path ' + flag);
+    app.commandLine.appendSwitch('register-pepper-plugins', flag);
+}
 })();
 
 global.launchUrl = null;
@@ -429,3 +409,28 @@ app.on('activate', () => {
     makeRuntimeWindow();
   }
 })
+
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit();
+  return;
+}
+else {
+  console.log('starting');
+  if (!global.chrome)
+    return;
+
+    console.log('poops');
+  if (commandLine.length == 2 && commandLine[1].startsWith('ec-' + global.chromeAppId + "://")) {
+    app.emit('open-url', null, commandLine[1]);
+  }
+  else {
+    chrome.app.runtime.onLaunched.invokeListeners(null, [{
+      commandLine: commandLine,
+      isKioskSession: false,
+      isPublicSession: false,
+      source: "command_line"
+    }]);
+  }
+}
