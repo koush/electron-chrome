@@ -157,6 +157,7 @@ function ensureLatestCrx(appId, currentVersion) {
 }
 
 var updatePromise;
+var allowImmediateUpdateCheck = true;;
 
 chrome.alarms = require('./chrome-alarms.js');
 chrome.idle = require('./chrome-idle.js');
@@ -191,6 +192,15 @@ chrome.runtime = {
       chrome.runtime.onUpdateAvailable.invokeListeners(null, [details])
       cb('update_available', details);
     })
+
+    if (!allowImmediateUpdateCheck)
+      return;
+
+    allowImmediateUpdateCheck = false;
+    setTimeout(function() {
+      allowImmediateUpdateCheck = true;
+      updateChecker();
+    }, 30 * 60 * 1000);
   },
   reset: function() {
     localStorage.clear();
