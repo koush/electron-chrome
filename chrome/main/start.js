@@ -311,7 +311,13 @@ function registerProtocol() {
           file = file.substring(0, query);
         fs.readFile(file, function(e, d) {
           var result = cache[request.url] = e || d;
-          callback(result);
+          if (request.url.indexOf('.html') != -1)
+            callback({
+              data: result,
+              mimeType: 'text/html',
+            })
+          else
+            callback(result);
         })
       }, function(e) {
         if (e) {
