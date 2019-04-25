@@ -285,8 +285,8 @@ var updateCheckerId;
 function startUpdateChecker() {
   clearInterval(updateCheckerId);
   updateChecker();
-  // do this every 30 minutes
-  updateCheckerId = setInterval(updateChecker, 30 * 60 * 1000);
+  // do this once a day
+  updateCheckerId = setInterval(updateChecker, 24 * 60 * 60 * 1000);
 }
 
 function createBackground() {
