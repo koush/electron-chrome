@@ -2,8 +2,9 @@ echo "creating icon from $1"
 cd build
 
 # Linux
-mkdir -p build
+mkdir -p build/icons/
 cp $1 build/icon.png
+cp $1 build/icons/512.png
 
 # Mac
 mkdir icon.iconset
