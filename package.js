@@ -5,6 +5,7 @@ const AdmZip = require('adm-zip');
 const mkdirp = require('mkdirp');
 const os = require('os');
 const electronInstaller = require('electron-winstaller');
+const ncp = require('ncp').ncp;
 
 var deleteRecursive = function(inPath) {
   // existsSync follows symlinks and crap, so just try to delete straight up first
@@ -79,8 +80,9 @@ function withAppId() {
   var iconScript = null;
   if (os.platform() == 'win32')
     iconScript = 'icon.bat';
-  else if (os.platform() == 'darwin')
+  else
     iconScript = './icon.sh';
+
   if (iconScript) {
     console.log(iconScript);
     var child = require('child_process').exec(`${iconScript} ${icon}`);
@@ -104,9 +106,57 @@ const platformIconExtensions = {
   linux: '.png',
 }
 
-const platformIcon = path.join(process.cwd(), 'build/MyIcon' + platformIconExtensions[os.platform()]);
+const platformIcon = path.join(process.cwd(), 'build/icon' + platformIconExtensions[os.platform()]);
+
+function createPackageJson(inputPackageJson, outputPackageJson) {
+  var electronJson = inputPackageJson;
+  var electronPackage = JSON.parse(fs.readFileSync(electronJson).toString());
+  electronPackage.name = manifest.name;
+  electronPackage.description = manifest.description;
+  electronPackage.version = manifest.version;
+  electronPackage.build = {
+    asar: false,
+  }
+  chrome = chrome || {};
+  chrome.runtimeId = chrome.runtimeId || runtimeId;
+  chrome.appId = chrome.appId || appId;
+  electronPackage.chrome = chrome;
+  fs.writeFileSync(outputPackageJson, JSON.stringify(electronPackage, null, 2));
+}
+
+var ncpp = require('deferred').promisify(ncp);
+var ncpOpts = {
+  clobber: false,
+  dereference: true,
+};
+
+async function startLinuxPackager() {
+  console.log('linux');
+  var buildPath = path.join(__dirname, 'build');
+  mkdirp.sync(buildPath);
+  for (var f of ['electron-main.js', 'electron-background.html', 'package.json', 'node_modules', 'chrome']) {
+    await ncpp(path.join(__dirname, f), path.join(buildPath, f), ncpOpts);
+  }
+  await ncpp(appDir, path.join(buildPath, 'unpacked-crx'), ncpOpts);
+
+  if (assets) {
+    var platformAssets = path.join(assets, os.platform());
+    var platformAssetsDest = path.join(buildPath, 'platform-assets', os.platform());
+    mkdirp.sync(platformAssetsDest);
+    await ncpp(platformAssets, platformAssetsDest, ncpOpts);
+  }
+  else {
+    console.log('no assets');
+  }
+
+  createPackageJson(path.join(buildPath, 'package.json'), path.join(buildPath, 'package.json'));
+}
 
 function startPackager() {
+  if (process.env['TARGET_PLATFORM'] == 'linux') {
+    return startLinuxPackager();
+  }
+
   var packager = require('electron-packager')
   var out = path.join(__dirname, 'build');
   packager({
@@ -141,20 +191,11 @@ function startPackager() {
 
     // all: true,
     afterCopy: [function(buildPath, electronVersion, platform, arch, callback) {
-      var ncp = require('ncp').ncp;
 
       console.log(appDir, buildPath);
 
-      var electronJson = path.join(buildPath, 'package.json');
-      var electronPackage = JSON.parse(fs.readFileSync(electronJson).toString());
-      electronPackage.name = manifest.name;
-      electronPackage.description = manifest.description;
-      electronPackage.version = manifest.version;
-      chrome = chrome || {};
-      chrome.runtimeId = chrome.runtimeId || runtimeId;
-      chrome.appId = chrome.appId || appId;
-      electronPackage.chrome = chrome;
-      fs.writeFileSync(electronJson, JSON.stringify(electronPackage, null, 2));
+      var packageJson = path.join(buildPath, 'package.json');
+      createPackageJson(packageJson, packageJson);
 
       console.log('copying app into place');
       ncp(appDir, path.join(buildPath, 'unpacked-crx'), {

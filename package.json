@@ -5,7 +5,8 @@
   "description": "Run Chrome apps on Electron",
   "scripts": {
     "start": "electron .",
-    "package": "node package.js"
+    "package": "node package.js",
+    "package-linux": "TARGET_PLATFORM=linux node package.js"
   },
   "dependencies": {
     "adm-zip": "^0.4.13",
@@ -14,7 +15,9 @@
     "ncp": "^2.0.0"
   },
   "devDependencies": {
+    "deferred": "^0.7.11",
     "electron": "^4.0.4",
+    "electron-builder": "^20.43.0",
     "electron-packager": "12.2.0",
     "electron-winstaller": "^2.7.0"
   }
