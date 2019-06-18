@@ -1,6 +1,10 @@
 echo "creating icon from $1"
 cd build
 
+# Linux
+mkdir -p build
+cp $1 build/icon.png
+
 # Mac
 mkdir icon.iconset
 sips -z 16 16     $1 --out icon.iconset/icon_16x16.png
