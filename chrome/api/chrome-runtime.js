@@ -147,7 +147,13 @@ function ensureLatestCrx(appId, currentVersion) {
 
       chromeAppUpdater.downloadCrx(appId, latest)
       .then((crxPath) => {
-        return chromeAppUpdater.extractCrx(crxPath);
+        try {
+          return chromeAppUpdater.extractCrx(crxPath);
+        }
+        catch (e) {
+          fs.unlinkSync(crxPath);
+          throw e;
+        }
       })
       .then(function() {
         resolve(latest.version);

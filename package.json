@@ -1,6 +1,6 @@
 {
   "name": "ElectronChrome",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "main": "electron-main.js",
   "description": "Run Chrome apps on Electron",
   "scripts": {

@@ -7,6 +7,7 @@ const jq = require('../common/jquery-2.1.1.min.js')
 const mkdirp = require('mkdirp')
 const AdmZip = require('adm-zip');
 const compareChromeVersions = require('../main/chrome-app-version.js').compare;
+const pjson = require('package.json');
 
 function getCrxDir(id) {
   id = id || '';
@@ -26,7 +27,8 @@ function getLatestVersion(id) {
       x: querystring.stringify(updateParams)
     }
     var encodedParams = querystring.stringify(params);
-    var crxInfoUrl = `https://clients2.google.com/service/update2/crx?${encodedParams}`
+    var updateUrl = (pjson.chrome && pjson.chrome.updateUrl) || 'https://clients2.google.com/service/update2/crx';
+    var crxInfoUrl = `${updateUrl}?${encodedParams}`
     console.log(crxInfoUrl);
 
     var crxs = getCrxDir(id);
@@ -40,11 +42,12 @@ function getLatestVersion(id) {
       console.log('server version');
       console.log(text);
       var d = jq.parseXML(text);
-      var updatecheck = jq(d).find('app>updatecheck')[0];
-      resolve({
+      var updatecheck = jq(d).find('app[appid="' + id + '"]>updatecheck')[0];
+      var updateResult = {
         codebase: updatecheck.getAttribute('codebase'),
         version: updatecheck.getAttribute('version'),
-      });
+      };
+      resolve(updateResult);
     });
   });
 }
@@ -136,12 +139,15 @@ function extractCrx(crxPath) {
   var b = fs.readFileSync(crxPath);
   var arrayBuffer = new Uint8Array(b).buffer;
   var ui32 = new DataView(arrayBuffer);
-  var pklen = ui32.getInt32(8, true);
-  var siglen = ui32.getInt32(12, true);
+  // maybe this is a zip. check the zip magic.
+  if (ui32.getInt32(0, true) != 0x04034b50) {
+    var pklen = ui32.getInt32(8, true);
+    var siglen = ui32.getInt32(12, true);
 
-  var offset = 4 * 4 + pklen + siglen;
-  console.log(offset);
-  b = Buffer.from(arrayBuffer, offset);
+    var offset = 4 * 4 + pklen + siglen;
+    console.log(offset);
+    b = Buffer.from(arrayBuffer, offset);
+  }
   var zip = new AdmZip(b);
 
   var tmp = unpackedPath + '.tmp';
