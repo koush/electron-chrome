@@ -125,12 +125,16 @@ function maybeRefreshToken(key) {
 
   return fetch('https://www.googleapis.com/oauth2/v4/token', request)
   .then(function(res) {
-    // what sort of error codes do we get here that are recoverable via another interactive request?
-    if (res.status != 200)
-      return Promise.reject('received status: ' + res.status);
+    // don't bother error checking for status codes, just validate the json.
     return res.json();
   })
   .then(function(json) {
+    if (!json.access_token || !json.expires_in || !json.token_type) {
+      // check to see if this refresh token is revoked or something.
+      (json.error == 'invalid_grant')
+        localStorage.removeItem(key);
+      throw new Error('refresh token failed: ' + JSON.stringify(json));
+    }
     tokenInfo.access_token = json.access_token;
     tokenInfo.expires_in = json.expires_in;
     tokenInfo.token_type = json.token_type;
