@@ -5,6 +5,7 @@
   "description": "Run Chrome apps on Electron",
   "scripts": {
     "start": "electron .",
+    "build": "electron-builder --project build --publish never",
     "package": "node package.js",
     "package-linux": "TARGET_PLATFORM=linux node package.js"
   },
@@ -17,8 +18,13 @@
   "devDependencies": {
     "deferred": "^0.7.11",
     "electron": "^4.0.4",
-    "electron-builder": "^20.43.0",
+    "electron-builder": "^22.3.2",
+    "electron-notarize": "^0.2.1",
     "electron-packager": "12.2.0",
-    "electron-winstaller": "^2.7.0"
+    "electron-winstaller": "^2.7.0",
+    "rimraf": "^3.0.2"
+  },
+  "build": {
+    "asar": false
   }
 }

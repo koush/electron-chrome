@@ -6,26 +6,12 @@ const mkdirp = require('mkdirp');
 const os = require('os');
 const electronInstaller = require('electron-winstaller');
 const ncp = require('ncp').ncp;
-
-var deleteRecursive = function(inPath) {
-  // existsSync follows symlinks and crap, so just try to delete straight up first
-  try {
-    fs.unlinkSync(inPath);
-  }
-  catch (ignore) {
-  }
-
-  if (fs.existsSync(inPath) && fs.lstatSync(inPath).isDirectory()) {
-    fs.readdirSync(inPath).forEach(function(file,index) {
-      var curPath = path.join(inPath, file);
-      deleteRecursive(curPath);
-    });
-    fs.rmdirSync(inPath);
-  }
-};
+const rimraf = require('rimraf').sync;
 
 const buildPath = path.join(__dirname, 'build');
-deleteRecursive(buildPath);
+rimraf(buildPath);
+const distPath = path.join(__dirname, 'dist');
+rimraf(distPath);
 mkdirp.sync(buildPath);
 
 var appDir;
@@ -59,6 +45,16 @@ try {
   chrome = JSON.parse(fs.readFileSync(path.join(appDir, 'electron.json')).toString());
 }
 catch (e) {
+}
+
+function makeMacZip(appPath) {
+  var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-notarized-mac.zip`, `${manifest.name}.app`], {
+    cwd: appPath,
+  });
+  child.stdout.pipe(process.stdout);
+  child.on('exit', function() {
+    console.log('zip complete');
+  })
 }
 
 runtimeId = runtimeId || (chrome && chrome.runtimeId);
@@ -108,20 +104,20 @@ const platformIconExtensions = {
 
 const platformIcon = path.join(process.cwd(), 'build/icon' + platformIconExtensions[os.platform()]);
 
-function createPackageJson(inputPackageJson, outputPackageJson) {
+function createPackageJson(inputPackageJson, outputPackageJson, removeBuild) {
   var electronJson = inputPackageJson;
   var electronPackage = JSON.parse(fs.readFileSync(electronJson).toString());
   electronPackage.name = manifest.name;
   electronPackage.description = manifest.description;
   electronPackage.version = manifest.version;
-  electronPackage.build = {
-    asar: false,
-  }
+  if (removeBuild)
+    delete electronPackage.build;
   chrome = chrome || {};
   chrome.runtimeId = chrome.runtimeId || runtimeId;
   chrome.appId = chrome.appId || appId;
   electronPackage.chrome = chrome;
   fs.writeFileSync(outputPackageJson, JSON.stringify(electronPackage, null, 2));
+  return electronPackage;
 }
 
 var ncpp = require('deferred').promisify(ncp);
@@ -130,8 +126,8 @@ var ncpOpts = {
   dereference: true,
 };
 
-async function startLinuxPackager() {
-  console.log('linux');
+async function prepareBuilder() {
+  console.log('packaging only');
   var buildPath = path.join(__dirname, 'build');
   mkdirp.sync(buildPath);
   for (var f of ['electron-main.js', 'electron-background.html', 'package.json', 'node_modules', 'chrome']) {
@@ -149,12 +145,46 @@ async function startLinuxPackager() {
     console.log('no assets');
   }
 
-  createPackageJson(path.join(buildPath, 'package.json'), path.join(buildPath, 'package.json'));
+  const darwin = os.platform() === 'darwin';
+  var mergedPackageJson = createPackageJson(path.join(buildPath, 'package.json'), path.join(buildPath, 'package.json'), darwin);
+  console.log(JSON.stringify(mergedPackageJson, null, 2));
+
+  if (!darwin)
+    return;
+
+  if (os.platform() === 'darwin') {
+    console.log('building mac.app');
+    const builder = require("electron-builder")
+    const Platform = builder.Platform
+    await builder.build({
+      targets: Platform.MAC.createTarget(),
+      config: {
+        directories: {
+          app: buildPath,
+        }
+      }
+    })
+
+    const chromeJson = mergedPackageJson.chrome;
+    if (chromeJson && chromeJson.mac && chromeJson.mac.notarize) {
+      console.log('notarizing mac.app');
+
+      const notarize = Object.assign({}, chromeJson.mac.notarize);
+      const appPath = path.join(__dirname, `dist/mac/${manifest.name}.app`);
+      console.log(appPath)
+      notarize.appPath = appPath;
+
+      const en = require('electron-notarize');
+      await en.notarize(notarize)
+    }
+
+    makeMacZip(path.join(__dirname, 'dist/mac/'))
+  }
 }
 
 function startPackager() {
-  if (process.env['TARGET_PLATFORM'] == 'linux') {
-    return startLinuxPackager();
+  if (process.env['TARGET_PLATFORM'] == 'linux' || os.platform() == 'darwin') {
+    return prepareBuilder();
   }
 
   var packager = require('electron-packager')
@@ -237,15 +267,6 @@ function startPackager() {
       throw err;
     }
     console.log('making zips');
-    function makeMacZip(appPath) {
-      var child = require('child_process').spawn('zip', ['-ry', `${manifest.name}-mac.zip`, `${manifest.name}.app`], {
-        cwd: appPath,
-      });
-      child.stdout.pipe(process.stdout);
-      child.on('exit', function() {
-        console.log('zip complete');
-      })
-    }
 
     appPaths
     .filter(appPath => appPath.indexOf('darwin') != -1)
