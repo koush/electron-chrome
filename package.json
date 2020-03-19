@@ -1,6 +1,6 @@
 {
   "name": "ElectronChrome",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "main": "electron-main.js",
   "description": "Run Chrome apps on Electron",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "deferred": "^0.7.11",
-    "electron": "^4.0.4",
+    "electron": "^8.1.1",
     "electron-builder": "^22.3.2",
     "electron-notarize": "^0.2.1",
     "electron-packager": "12.2.0",

@@ -1,9 +1,8 @@
 const path = require('path');
 const os = require('os');
 const {electron, remote} = require('./electron-remote.js')
-const {BrowserWindow, app, protocol, nativeImage} = electron;
+const {BrowserWindow, app, protocol, nativeImage, screen} = electron;
 const {throttleTimeout} = require('./util.js');
-const {screen} = require('electron');
 const {
   makeEvent,
   safeRegister,
@@ -114,6 +113,7 @@ exports.window.create = function(options, cb) {
 
   console.log('creating window', id);
   opts.webPreferences = {
+    nodeIntegration: true,
     plugins: true,
     preload: preloadPath,
   }

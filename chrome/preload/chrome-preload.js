@@ -16,8 +16,8 @@ const {
 
 const {Port} = require('./chrome-runtime-port.js');
 
-webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
-webFrame.registerURLSchemeAsPrivileged('chrome-extension')
+// webFrame.registerURLSchemeAsBypassingCSP('chrome-extension')
+// webFrame.registerURLSchemeAsPrivileged('chrome-extension')
 
 const selfBrowserWindow = remote.getCurrentWindow();
 const selfId = selfBrowserWindow.id;
