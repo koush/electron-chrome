@@ -259,7 +259,8 @@ function makeRuntimeWindow() {
   console.log('starting runtime');
   chromeRuntimeWindow = new BrowserWindow({
       webPreferences: {
-          nodeIntegration: true
+        webSecurity: false,
+        nodeIntegration: true
       },
       show: false,
   });

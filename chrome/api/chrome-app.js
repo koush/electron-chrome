@@ -113,6 +113,7 @@ exports.window.create = function(options, cb) {
 
   console.log('creating window', id);
   opts.webPreferences = {
+    webSecurity: false,
     nodeIntegration: true,
     plugins: true,
     preload: preloadPath,
